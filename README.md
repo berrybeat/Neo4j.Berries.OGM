@@ -56,6 +56,10 @@ The queries as you see are not supported with LINQ and instead you need to use t
 * Neo4j.Password: The password for your database
 * Neo4j.Database: This is optional. If not passed, it will connect to the default database. If passed, it will connect to the passed database.
 
+## Contributing
+
+We welcome community enhancements and bug fixed. If you want to contribute to this repository please check [How to contribute](./.github/CONTRIBUTING.md) for more information
+
 ## Resources
 
 For more information about the library check [Getting Started](#)
