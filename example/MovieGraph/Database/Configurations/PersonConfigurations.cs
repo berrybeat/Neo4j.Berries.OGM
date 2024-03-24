@@ -1,7 +1,7 @@
-using berrybeat.Neo4j.OGM.Enums;
-using berrybeat.Neo4j.OGM.Interfaces;
-using berrybeat.Neo4j.OGM.Models;
 using MovieGraph.Database.Models;
+using Neo4j.Berries.OGM.Enums;
+using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Config;
 
 namespace MovieGraph.Database.Configurations;
 

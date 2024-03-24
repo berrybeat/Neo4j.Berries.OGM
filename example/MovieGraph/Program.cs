@@ -1,4 +1,4 @@
-using berrybeat.Neo4j.OGM;
+using Neo4j.Berries.OGM;
 using MovieGraph.Database;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -1,11 +1,11 @@
-using berrybeat.Neo4j.OGM.Contexts;
-using berrybeat.Neo4j.OGM.Models;
 using MovieGraph.Database.Models;
+using Neo4j.Berries.OGM.Contexts;
+using Neo4j.Berries.OGM.Models;
 using Neo4j.Driver;
 
 namespace MovieGraph.Database;
 
-public class ApplicationGraphContext(IDriver driver) : GraphContext(driver)
+public class ApplicationGraphContext(Neo4jOptions options) : GraphContext(options)
 {
     public NodeSet<Movie> Movies { get; private set; }
     public NodeSet<Person> People { get; private set; }
