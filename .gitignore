@@ -1,0 +1,6 @@
+.vscode
+.vs
+.sln
+bin
+obj
+appsettings.Development.json
