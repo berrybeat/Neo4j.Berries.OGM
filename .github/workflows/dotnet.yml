@@ -47,4 +47,4 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - run: dotnet pack src/Neo4j.Berries.OGM -c Release /p:Version=$PACKAGE_VERSION
-      - run: dotnet nuget push src/Neo4j.Berries.OGM/bin/Release/*.nupkg --api- --source https://api.nuget.org/v3/index.json
+      - run: dotnet nuget push src/Neo4j.Berries.OGM/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_APIKEY }} --source https://api.nuget.org/v3/index.json
