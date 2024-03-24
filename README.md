@@ -2,6 +2,13 @@
 
 This repository is home to berrybeat's dotnet OGM (Object-Graph-Mapping) library for neo4j. It supports basic queries, create, update, connect/disconnect relations.
 
+## Version
+
+* Latest version: v1.0.0-preview-1
+* Under development: v1.0.0-preview-1
+* Dev version: v1.0.0-preview-1
+
+
 ## Installation
 This library is available in nuget and can be installed with the following command:
 
@@ -39,10 +46,15 @@ The queries as you see are not supported with LINQ and instead you need to use t
         "Url": "<neo4j-address>",
         "Username": "<neo4j-user>",
         "Password": "<neo4j-password>",
-        "Database": "<neo4j-database-name>" //Optional. When not set, the default database will be used!
+        "Database": "<neo4j-database-name>"
     }
 }
 ```
+
+* Neo4j.Url: This is the url to neo4j. For example: `http://localhost:7687
+* Neo4j.Username: The username for your database
+* Neo4j.Password: The password for your database
+* Neo4j.Database: This is optional. If not passed, it will connect to the default database. If passed, it will connect to the passed database.
 
 ## Resources
 
