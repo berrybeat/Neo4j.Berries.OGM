@@ -26,7 +26,30 @@ These type of issues are when an expected feature from the repository is misbeha
 ## Development flow
 Regardless of the issue type, if you decided to contribute as a developer and fix/enhance something, it would not hurt to have a look here:
 
+* Setup your development environment. You will need to run a local neo4j database to run the unit tests.
+* Make sure the work you are trying to do on an issue is already communicated with the team. **This communication is very important to prevent throwing lots of work done.**
+* [Create a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo), then start implementing the issue under a new local branch. The branch will be used to create the pull request later.
+* We use Test-Driven-Development in this repository. Make sure on adding new features you are following the same test pattern as much as possible.
+* On adding new code to the repository, make sure you are following the existing patterns you see in the existing code.
+* When your changes are done, please make sure all unit tests are still running. The `PR` won't be approved if the tests are not being passed.
+* Please always consider situations, where your changes are causing other areas of the repository need more unit tests.
+* Commit changes and push the local branch to your Github fork.
+* Create a PR for the issue you were working on.
+* Wait for someone to pick your changes and review them.
+* Discuss with the reviewer and be transparent regarding your changes.
+* Congratulations, when all above are done, you have made your contribution successfully to this repository.
 
+## Breaking changes
+As long as the repository is not meant to release a breaking change, make sure you have backward/forward compatibility in mind while implementing issues. The older methods which won't be supported in the next breaking version, must be marked as deprecated with a hint on how to migrate to the newer method.
+
+
+## Labels
+
+* **enhancement:** As described before, an `enhancement` is when a new feature is being added or an existing one is being improved.
+* **incident:** As described before, an `incident` is simply equivalent to a bug report.
+* **needs-design:** This is when an issue still needs some considerations and agreements on the design, how to implement.
+* **easy-peasy:** These are the type of issues, which are pretty straight forward to do.
+* **hardcore:** There are the issues which the design the clear, but implementing the issue is complex.
 
 ## Code of conduct
 
