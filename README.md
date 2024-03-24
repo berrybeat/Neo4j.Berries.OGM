@@ -2,12 +2,6 @@
 
 This repository is home to berrybeat's dotnet OGM (Object-Graph-Mapping) library for neo4j. It supports basic queries, create, update, connect/disconnect relations.
 
-## Version
-
-* Latest version: v1.0.0-preview-1
-* Under development: v1.0.0-preview-1
-* Dev version: v1.0.0-preview-1
-
 
 ## Installation
 This library is available in nuget and can be installed with the following command:

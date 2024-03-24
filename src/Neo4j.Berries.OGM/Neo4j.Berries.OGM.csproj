@@ -17,4 +17,7 @@
       <_Parameter1>$(MSBuildProjectName).tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\.github\nuget\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
 </Project>
