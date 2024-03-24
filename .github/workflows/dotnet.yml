@@ -22,6 +22,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs: build
+    env:
+      Neo4j__Url: $NEO4J_URL
+      Neo4j__Username: $NEO4J_USERNAME
+      Neo4j__Password: $NEO4J_PASSWORD
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
