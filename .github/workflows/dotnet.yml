@@ -46,6 +46,5 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - run: dotnet nuget add source --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/berrybeat/index.json"
       - run: dotnet pack src/Neo4j.Berries.OGM -c Release /p:Version=$PACKAGE_VERSION
-      - run: dotnet nuget push src/Neo4j.Berries.OGM/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_APIKEY }} --source github
+      - run: dotnet nuget push src/Neo4j.Berries.OGM/bin/Release/*.nupkg --api- --source https://api.nuget.org/v3/index.json
