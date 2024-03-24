@@ -2,7 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PackageProjectUrl>https://github.com/berrybeat/Neo4j.Berries.OGM</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/berrybeat/Neo4j.Berries.OGM</RepositoryUrl>
+    <PackageTags>C#;dotnet;neo4j;ogm;graph;nosql</PackageTags>
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
