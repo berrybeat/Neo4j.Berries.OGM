@@ -49,7 +49,7 @@ As long as the repository is not meant to release a breaking change, make sure y
 * **incident:** As described before, an `incident` is simply equivalent to a bug report.
 * **needs-design:** This is when an issue still needs some considerations and agreements on the design, how to implement.
 * **easy-peasy:** These are the type of issues, which are pretty straight forward to do.
-* **hardcore:** There are the issues which the design the clear, but implementing the issue is complex.
+* **hardcore:** These are the issues which the design is clear, but implementing the issue is complex.
 
 ## Code of conduct
 
