@@ -11,7 +11,6 @@ public static class DI
     public static IServiceCollection AddNeo4j<TContext>(this IServiceCollection services, IConfiguration configuration, params Assembly[] assembly)
     where TContext : GraphContext
     {
-        services.Configure<Neo4jOptions>(configuration.GetSection("Neo4j"));
         services.AddSingleton(sp =>
         {
             return new Neo4jSingletonContext(assembly);
@@ -19,8 +18,8 @@ public static class DI
         services.AddScoped(sp =>
         {
             sp.GetRequiredService<Neo4jSingletonContext>();
-            var options = sp.GetRequiredService<IOptions<Neo4jOptions>>().Value;
-            return Activator.CreateInstance(typeof(TContext), options) as TContext;
+            var neo4jOptions = new Neo4jOptions(configuration);
+            return Activator.CreateInstance(typeof(TContext), neo4jOptions) as TContext;
         });
         return services;
     }
