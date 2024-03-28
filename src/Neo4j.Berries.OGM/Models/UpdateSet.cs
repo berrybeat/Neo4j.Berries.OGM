@@ -13,7 +13,7 @@ where TNode : class
     private readonly StringBuilder CypherBuilder;
 
     internal int Index { get; }
-    internal NodeConfiguration NodeConfig { get; } = Neo4jSingletonContext.Configs[typeof(TNode).Name];
+    internal NodeConfiguration NodeConfig { get; } = new NodeConfiguration();
     internal Dictionary<string, object> Parameters { get; } = new Dictionary<string, object>();
     internal string CurrentParameterName => $"up_{Index}_{Parameters.Count}";
     public UpdateSet(StringBuilder cypherBuilder, int index, string nodeAlias)
@@ -22,6 +22,10 @@ where TNode : class
         NodeAlias = nodeAlias;
         CypherBuilder = cypherBuilder;
         Index = index;
+        if(Neo4jSingletonContext.Configs.TryGetValue(typeof(TNode).Name, out NodeConfiguration value))
+        {
+            NodeConfig = value;
+        }
 
     }
     /// <summary>
@@ -37,7 +41,7 @@ where TNode : class
             CypherBuilder.Append($", {NodeAlias}.{property} = ${parameterName}");
         else
             CypherBuilder.Append($"{NodeAlias}.{property} = ${parameterName}");
-        if (value is Guid)
+        if (value is Guid || value is Enum)
             Parameters.Add(parameterName, value.ToString());
         else
             Parameters.Add(parameterName, value);
@@ -55,7 +59,7 @@ where TNode : class
             CypherBuilder.Append($", {NodeAlias}.{property} = ${parameterName}");
         else
             CypherBuilder.Append($"{NodeAlias}.{property} = ${parameterName}");
-        if (value is Guid)
+        if (value is Guid || value is Enum)
             Parameters.Add(parameterName, value.ToString());
         else
             Parameters.Add(parameterName, value);
@@ -80,7 +84,7 @@ where TNode : class
                 CypherBuilder.Append($", {NodeAlias}.{prop.Name} = ${parameterName}");
             else
                 CypherBuilder.Append($"{NodeAlias}.{prop.Name} = ${parameterName}");
-            if (value is Guid)
+            if (value is Guid || value is Enum)
                 Parameters.Add(parameterName, value.ToString());
             else
                 Parameters.Add(parameterName, value);

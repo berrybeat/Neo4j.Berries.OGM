@@ -2,15 +2,18 @@ using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 using Neo4j.Driver;
+using Neo4j.Berries.OGM.Tests.Mocks.Enums;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 
 public class UpdateTests : TestBase
 {
-    public Movie TestNode { get; }
+    private readonly Movie TestNode;
+    private readonly Equipment TestEquipmentNode;
     public UpdateTests() : base(true)
     {
         TestNode = TestGraphContext.Movies.Match().FirstOrDefaultAsync().Result;
+        TestEquipmentNode = TestGraphContext.Equipments.Match().FirstOrDefault();
     }
 
     [Fact]
@@ -217,5 +220,12 @@ public class UpdateTests : TestBase
         updatedNode.Id.Should().Be(TestNode.Id);
         updatedNode.Name.Should().Be("The Punisher");
         updatedNode.Year.Should().Be(2060);
+    }
+    [Fact]
+    public void Should_Update_Nodes_Without_Config()
+    {
+        var result = TestGraphContext.Equipments.Match(x => x.Where(y => y.Id, TestEquipmentNode.Id)).UpdateAndReturn(x => x.Set(y => y.Type, EquipmentType.Light));
+
+        result.ElementAt(0).Type.Should().Be(EquipmentType.Light);
     }
 }
