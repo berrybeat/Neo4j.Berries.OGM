@@ -1,6 +1,5 @@
 using System.Reflection;
 using Neo4j.Berries.OGM.Interfaces;
-using Neo4j.Berries.OGM.Models;
 using Neo4j.Berries.OGM.Models.Config;
 
 namespace Neo4j.Berries.OGM.Contexts;

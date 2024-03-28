@@ -53,7 +53,7 @@ public class DatabaseQueryTests() : TestBase(true)
             .People
             .Match()
             .WithRelation(x => x.MoviesAsDirector);
-        
+
         (await query.FirstOrDefaultAsync()).Should().NotBeNull();
         query.FirstOrDefault().Id.Should().NotBe(Guid.Empty);
     }
@@ -73,7 +73,7 @@ public class DatabaseQueryTests() : TestBase(true)
         var query = TestGraphContext
             .Movies
             .Match();
-        
+
         (await query.ToListAsync()).Should().HaveCount(10);
         query.ToList().Should().OnlyHaveUniqueItems();
     }

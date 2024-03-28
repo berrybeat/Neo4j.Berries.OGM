@@ -9,6 +9,7 @@ public class ApplicationGraphContext(Neo4jOptions neo4jOptions) : GraphContext(n
 {
     public NodeSet<Movie> Movies { get; private set; }
     public NodeSet<Person> People { get; private set; }
+    public NodeSet<Equipment> Equipments { get; private set; }
     //This should not be initialized
     public List<Movie> SilentMovies { get; set; }
 }
