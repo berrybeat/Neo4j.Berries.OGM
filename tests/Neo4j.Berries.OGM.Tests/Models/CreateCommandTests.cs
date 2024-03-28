@@ -198,10 +198,26 @@ public class CreateCommandTests
         sut.Parameters["cp_0_0_2"].Should().Be(movie.Year);
         sut.Parameters["cp_0_0_3"].Should().Be(movie.Equipments[0].Id.ToString());
         sut.Parameters["cp_0_0_4"].Should().Be(movie.Equipments[0].Name);
-        sut.Parameters["cp_0_0_5"].Should().Be(movie.Equipments[0].Type);
+        sut.Parameters["cp_0_0_5"].Should().Be(movie.Equipments[0].Type.ToString());
 
         sut.Parameters["cp_0_0_6"].Should().Be(movie.Equipments[1].Id.ToString());
         sut.Parameters["cp_0_0_7"].Should().Be(movie.Equipments[1].Name);
-        sut.Parameters["cp_0_0_8"].Should().Be(movie.Equipments[1].Type);
+        sut.Parameters["cp_0_0_8"].Should().Be(movie.Equipments[1].Type.ToString());
+    }
+
+    [Fact]
+    public void Should_Create_Node_Without_Config() {
+        var equipment = new Equipment {
+            Id = Guid.NewGuid(),
+            Name = "Camera Test",
+            Type = Mocks.Enums.EquipmentType.Camera
+        };
+        var sut = new CreateCommand<Equipment>(equipment, 0, 0, CypherBuilder);
+        CypherBuilder.ToString().Trim().Should().Be("""
+        CREATE (equipment0:Equipment { Id: $cp_0_0_0, Name: $cp_0_0_1, Type: $cp_0_0_2 })
+        """);
+        sut.Parameters["cp_0_0_0"].Should().Be(equipment.Id.ToString());
+        sut.Parameters["cp_0_0_1"].Should().Be(equipment.Name);
+        sut.Parameters["cp_0_0_2"].Should().Be(equipment.Type.ToString());
     }
 }

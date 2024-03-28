@@ -20,7 +20,7 @@ internal class CreateCommand<TNode> : ICommand
     private string Label => _source.GetType().Name;
     private string Alias => $"{Label.ToLower()}{_index}";
     private PropertyInfo[] Properties => _source.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-    private NodeConfiguration NodeConfig => Neo4jSingletonContext.Configs[Label];
+    private NodeConfiguration NodeConfig { get; } = new NodeConfiguration();
     public Dictionary<string, object> Parameters { get; set; } = [];
     public string CurrentParameterName => $"$cp_{_nodeSetIndex}_{_index}_{Parameters.Count}";
 
@@ -30,6 +30,10 @@ internal class CreateCommand<TNode> : ICommand
         _source = source;
         _index = index;
         CypherBuilder = cypherBuilder;
+        if (Neo4jSingletonContext.Configs.TryGetValue(Label, out NodeConfiguration value))
+        {
+            NodeConfig = value;
+        }
         AddCreateNodeCypher();
         AddSingleRelationsCyphers();
         AddRelationCollectionCypher();
@@ -47,7 +51,7 @@ internal class CreateCommand<TNode> : ICommand
         {
             var parameterName = CurrentParameterName;
             var value = prop.GetValue(_source);
-            if (value is Guid)
+            if (value is Guid || value is Enum)
             {
                 Parameters.Add(parameterName.Replace("$", ""), value.ToString());
             }
@@ -91,7 +95,7 @@ internal class CreateCommand<TNode> : ICommand
             var safeKeyValueParameters = properties.Select(x =>
             {
                 var parameterName = CurrentParameterName;
-                if (x.Value is Guid)
+                if (x.Value is Guid || x.Value is Enum)
                 {
                     Parameters.Add(parameterName.Replace("$", ""), x.Value.ToString());
                 }
@@ -128,7 +132,8 @@ internal class CreateCommand<TNode> : ICommand
             if (Neo4jSingletonContext.Configs.TryGetValue(prop.PropertyType.Name, out NodeConfiguration _targetNodeConfig))
             {
                 targetNodeConfig = _targetNodeConfig;
-            }            var relation = NodeConfig.Relations[prop.Name];
+            }
+            var relation = NodeConfig.Relations[prop.Name];
             foreach (var item in collection)
             {
                 var properties = item.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -145,7 +150,7 @@ internal class CreateCommand<TNode> : ICommand
                 var safeKeyValueParameters = properties.Select(x =>
                 {
                     var parameterName = CurrentParameterName;
-                    if (x.Value is Guid)
+                    if (x.Value is Guid || x.Value is Enum)
                     {
                         Parameters.Add(parameterName.Replace("$", ""), x.Value.ToString());
                     }
