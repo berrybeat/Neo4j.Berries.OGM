@@ -1,7 +1,6 @@
 using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
-using Neo4j.Driver;
 using Neo4j.Berries.OGM.Tests.Mocks.Enums;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
