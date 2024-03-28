@@ -5,6 +5,7 @@ using Neo4j.Berries.OGM.Models;
 using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
+using Neo4j.Berries.OGM.Tests.Contexts;
 
 
 namespace Neo4j.Berries.OGM.Tests.Models;
@@ -132,5 +133,28 @@ public class CreateCommandTests
         }
         sw.Stop();
         sw.ElapsedMilliseconds.Should().BeLessThan(1000);
+    }
+    [Fact]
+    public void Should_Create_Shadow_Node_Without_Having_The_Configuration()
+    {
+        var movie = new Movie {
+            Id = Guid.NewGuid(),
+            Name = "Matrix",
+            Year = 1999,
+            Location = new Location
+            {
+                Id = Guid.NewGuid()
+            }
+        };
+        var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
+        CypherBuilder.ToString().Trim().Should().Be("""
+        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, Year: $cp_0_0_2 })
+        MERGE (location0_1:Location { Id: $cp_0_0_3 })
+        CREATE (movie0)-[:FILMED_AT]->(location0_1)
+        """);
+        sut.Parameters["cp_0_0_0"].Should().Be(movie.Id.ToString());
+        sut.Parameters["cp_0_0_1"].Should().Be(movie.Name);
+        sut.Parameters["cp_0_0_2"].Should().Be(movie.Year);
+        sut.Parameters["cp_0_0_3"].Should().Be(movie.Location.Id.ToString());
     }
 }

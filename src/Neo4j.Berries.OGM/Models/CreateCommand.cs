@@ -71,7 +71,11 @@ internal class CreateCommand<TNode> : ICommand
         foreach (var prop in singleRelationProperties)
         {
             var value = prop.GetValue(_source);
-            var targetNodeConfig = Neo4jSingletonContext.Configs[prop.PropertyType.Name];
+            var targetNodeConfig = new NodeConfiguration();
+            if (Neo4jSingletonContext.Configs.TryGetValue(prop.PropertyType.Name, out NodeConfiguration _targetNodeConfig))
+            {
+                targetNodeConfig = _targetNodeConfig;
+            }
             var relation = NodeConfig.Relations[prop.Name];
             var targetNodeAlias = $"{relation.EndNodeType.Name.ToLower()}{_index}_{CypherLines}";
             var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
