@@ -18,7 +18,7 @@ public class Neo4jSingletonContextTests : TestBase
         Neo4jSingletonContext.Configs.Should().ContainKey(nameof(Person));
 
         var movieNodeConfig = Neo4jSingletonContext.Configs[nameof(Movie)];
-        movieNodeConfig.Relations.Should().HaveCount(3);
+        movieNodeConfig.Relations.Should().HaveCount(4);
         movieNodeConfig.Relations[nameof(Movie.Actors)].Label.Should().Be("ACTED_IN");
         movieNodeConfig.Relations[nameof(Movie.Actors)].Direction.Should().Be(RelationDirection.In);
         movieNodeConfig.Relations[nameof(Movie.Actors)].EndNodeType.Should().Be(typeof(Person));

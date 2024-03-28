@@ -124,8 +124,11 @@ internal class CreateCommand<TNode> : ICommand
         {
             var collection = prop.GetValue(_source) as ICollection;
             var firstItem = collection.OfType<object>().First();
-            var targetNodeConfig = Neo4jSingletonContext.Configs[firstItem.GetType().Name];
-            var relation = NodeConfig.Relations[prop.Name];
+            var targetNodeConfig = new NodeConfiguration();
+            if (Neo4jSingletonContext.Configs.TryGetValue(prop.PropertyType.Name, out NodeConfiguration _targetNodeConfig))
+            {
+                targetNodeConfig = _targetNodeConfig;
+            }            var relation = NodeConfig.Relations[prop.Name];
             foreach (var item in collection)
             {
                 var properties = item.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)

@@ -12,4 +12,5 @@ public class Movie
     public List<Person> Actors { get; set; }
     public Person Director { get; set; }
     public Location Location { get; set; }
+    public List<Equipment> Equipments { get; set; }
 }

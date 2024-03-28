@@ -6,6 +6,8 @@ using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Tests.Contexts;
+using System.Diagnostics.Contracts;
+using Bogus.DataSets;
 
 
 namespace Neo4j.Berries.OGM.Tests.Models;
@@ -137,7 +139,8 @@ public class CreateCommandTests
     [Fact]
     public void Should_Create_Shadow_Node_Without_Having_The_Configuration()
     {
-        var movie = new Movie {
+        var movie = new Movie
+        {
             Id = Guid.NewGuid(),
             Name = "Matrix",
             Year = 1999,
@@ -156,5 +159,49 @@ public class CreateCommandTests
         sut.Parameters["cp_0_0_1"].Should().Be(movie.Name);
         sut.Parameters["cp_0_0_2"].Should().Be(movie.Year);
         sut.Parameters["cp_0_0_3"].Should().Be(movie.Location.Id.ToString());
+    }
+    [Fact]
+    public void Should_Create_Target_Nodes_Without_Configuration()
+    {
+        var movie = new Movie
+        {
+            Id = Guid.NewGuid(),
+            Name = "Matrix",
+            Year = 1999,
+            Equipments =
+            [
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Camera Test",
+                    Type = Mocks.Enums.EquipmentType.Camera
+
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Light Test",
+                    Type = Mocks.Enums.EquipmentType.Light
+                }
+            ]
+        };
+        var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
+        CypherBuilder.ToString().Trim().Should().Be("""
+        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, Year: $cp_0_0_2 })
+        MERGE (equipment0_1:Equipment { Id: $cp_0_0_3, Name: $cp_0_0_4, Type: $cp_0_0_5 })
+        CREATE (movie0)-[:USES]->(equipment0_1)
+        MERGE (equipment0_3:Equipment { Id: $cp_0_0_6, Name: $cp_0_0_7, Type: $cp_0_0_8 })
+        CREATE (movie0)-[:USES]->(equipment0_3)
+        """);
+        sut.Parameters["cp_0_0_0"].Should().Be(movie.Id.ToString());
+        sut.Parameters["cp_0_0_1"].Should().Be(movie.Name);
+        sut.Parameters["cp_0_0_2"].Should().Be(movie.Year);
+        sut.Parameters["cp_0_0_3"].Should().Be(movie.Equipments[0].Id.ToString());
+        sut.Parameters["cp_0_0_4"].Should().Be(movie.Equipments[0].Name);
+        sut.Parameters["cp_0_0_5"].Should().Be(movie.Equipments[0].Type);
+
+        sut.Parameters["cp_0_0_6"].Should().Be(movie.Equipments[1].Id.ToString());
+        sut.Parameters["cp_0_0_7"].Should().Be(movie.Equipments[1].Name);
+        sut.Parameters["cp_0_0_8"].Should().Be(movie.Equipments[1].Type);
     }
 }
