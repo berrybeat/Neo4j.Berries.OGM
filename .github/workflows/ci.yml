@@ -33,17 +33,3 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - run: dotnet test tests/Neo4j.Berries.OGM.Tests -c Release
-  # publish:
-  #   runs-on: ubuntu-latest
-  #   needs: test
-  #   if: github.ref == 'refs/heads/dev'
-  #   env:
-  #     PACKAGE_VERSION: 1.0.0-preview-3
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Setup .NET
-  #       uses: actions/setup-dotnet@v4
-  #       with:
-  #         dotnet-version: 8.0.x
-  #     - run: dotnet pack src/Neo4j.Berries.OGM -c Release /p:Version=$PACKAGE_VERSION
-  #     - run: dotnet nuget push src/Neo4j.Berries.OGM/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_APIKEY }} --source https://api.nuget.org/v3/index.json
