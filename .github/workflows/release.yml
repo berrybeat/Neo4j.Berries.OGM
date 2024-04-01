@@ -1,0 +1,37 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+    branches:
+      - "main"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      Neo4j__Url: ${{ vars.NEO4J_URL  }}
+      Neo4j__Username: ${{ secrets.NEO4J_USERNAME }}
+      Neo4j__Password: ${{ secrets.NEO4J_PASSWORD }}
+      Neo4j__Database: githubTest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - run: dotnet build src/Neo4j.Berries.OGM -c Release
+    - run: dotnet test tests/Neo4j.Berries.OGM.Tests -c Release
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      PACKAGE_VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: echo $PACKAGE_VERSION
