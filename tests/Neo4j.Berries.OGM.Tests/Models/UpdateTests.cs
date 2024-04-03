@@ -31,12 +31,12 @@ public class UpdateTests : TestBase
     [Fact]
     public async void Should_Update_And_Return_Value()
     {
-        TestNode.Year = 1980;
+        TestNode.ReleaseDate = new DateTime(1980, 01, 01);
         var result = await TestGraphContext
             .Movies
             .Match(x => x.Where(y => y.Id, TestNode.Id))
             .UpdateAndReturnAsync(x => x.Set(TestNode));
-        result.ElementAt(0).Year.Should().Be(1980);
+        result.ElementAt(0).ReleaseDate.Should().Be(TestNode.ReleaseDate);
         result.ElementAt(0).Id.Should().Be(TestNode.Id);
     }
 
@@ -210,15 +210,16 @@ public class UpdateTests : TestBase
             .Movies
             .Match(x => x.Where(y => y.Id, TestNode.Id));
 
+        var releaseDate = new DateTime(2004, 06, 10);
         await query.UpdateAsync(x => x
                 .Set(y => y.Name, "The Punisher")
-                .Set(y => y.Year, 2060));
+                .Set(y => y.ReleaseDate, releaseDate));
 
         var updatedNode = await TestGraphContext.Movies.Match(x => x.Where(y => y.Id, TestNode.Id)).FirstOrDefaultAsync();
         updatedNode.Should().NotBeNull();
         updatedNode.Id.Should().Be(TestNode.Id);
         updatedNode.Name.Should().Be("The Punisher");
-        updatedNode.Year.Should().Be(2060);
+        updatedNode.ReleaseDate.Should().Be(releaseDate);
     }
     [Fact]
     public void Should_Update_Nodes_Without_Config()

@@ -5,9 +5,6 @@ using Neo4j.Berries.OGM.Models;
 using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
-using Neo4j.Berries.OGM.Tests.Contexts;
-using System.Diagnostics.Contracts;
-using Bogus.DataSets;
 
 
 namespace Neo4j.Berries.OGM.Tests.Models;
@@ -36,7 +33,7 @@ public class CreateCommandTests
         sut.Parameters.Should().HaveCount(3);
         sut.Parameters[$"cp_{nodeSetIndex}_{index}_0"].Should().Be(movie.Id.ToString());
         sut.Parameters[$"cp_{nodeSetIndex}_{index}_1"].Should().Be(movie.Name);
-        sut.Parameters[$"cp_{nodeSetIndex}_{index}_2"].Should().Be(movie.Year);
+        sut.Parameters[$"cp_{nodeSetIndex}_{index}_2"].Should().Be(movie.ReleaseDate);
     }
     [Fact]
     public void Build_Cypher_BasedOnGivenIndex()
@@ -49,7 +46,7 @@ public class CreateCommandTests
             Name = "Matrix"
         };
         _ = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
-        CypherBuilder.ToString().Should().Be($"CREATE (movie0:Movie {{ Id: $cp_{nodeSetIndex}_{index}_0, Name: $cp_{nodeSetIndex}_{index}_1, Year: $cp_{nodeSetIndex}_{index}_2 }})\n");
+        CypherBuilder.ToString().Should().Be($"CREATE (movie0:Movie {{ Id: $cp_{nodeSetIndex}_{index}_0, Name: $cp_{nodeSetIndex}_{index}_1, ReleaseDate: $cp_{nodeSetIndex}_{index}_2 }})\n");
     }
     [Fact]
     public void Parameters_With_GuidType_Should_Be_Converted_ToString()
@@ -73,7 +70,7 @@ public class CreateCommandTests
         {
             Id = Guid.NewGuid(),
             Name = "Matrix",
-            Year = 1999,
+            ReleaseDate = new DateTime(1999, 1, 1),
             Director = new Person
             {
                 Id = Guid.NewGuid(),
@@ -82,7 +79,7 @@ public class CreateCommandTests
         var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
 
         CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, Year: $cp_0_0_2 })
+        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
         MERGE (person0_1:Person { Id: $cp_0_0_3 })
         CREATE (movie0)<-[:DIRECTED]-(person0_1)
         """);
@@ -97,7 +94,7 @@ public class CreateCommandTests
         {
             Id = Guid.NewGuid(),
             Name = "Matrix",
-            Year = 1999,
+            ReleaseDate = new DateTime(1999, 1, 1),
             Actors =
             [
                 new()
@@ -112,7 +109,7 @@ public class CreateCommandTests
         };
         var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
         CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, Year: $cp_0_0_2 })
+        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
         MERGE (person0_1:Person { Id: $cp_0_0_3 })
         CREATE (movie0)<-[:ACTED_IN]-(person0_1)
         MERGE (person0_3:Person { Id: $cp_0_0_4 })
@@ -143,7 +140,7 @@ public class CreateCommandTests
         {
             Id = Guid.NewGuid(),
             Name = "Matrix",
-            Year = 1999,
+            ReleaseDate = new DateTime(1999, 1, 1),
             Location = new Location
             {
                 Id = Guid.NewGuid()
@@ -151,13 +148,13 @@ public class CreateCommandTests
         };
         var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
         CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, Year: $cp_0_0_2 })
+        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
         MERGE (location0_1:Location { Id: $cp_0_0_3 })
         CREATE (movie0)-[:FILMED_AT]->(location0_1)
         """);
         sut.Parameters["cp_0_0_0"].Should().Be(movie.Id.ToString());
         sut.Parameters["cp_0_0_1"].Should().Be(movie.Name);
-        sut.Parameters["cp_0_0_2"].Should().Be(movie.Year);
+        sut.Parameters["cp_0_0_2"].Should().Be(movie.ReleaseDate);
         sut.Parameters["cp_0_0_3"].Should().Be(movie.Location.Id.ToString());
     }
     [Fact]
@@ -167,7 +164,7 @@ public class CreateCommandTests
         {
             Id = Guid.NewGuid(),
             Name = "Matrix",
-            Year = 1999,
+            ReleaseDate = new DateTime(1999, 1, 1),
             Equipments =
             [
                 new()
@@ -187,7 +184,7 @@ public class CreateCommandTests
         };
         var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
         CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, Year: $cp_0_0_2 })
+        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
         MERGE (equipment0_1:Equipment { Id: $cp_0_0_3, Name: $cp_0_0_4, Type: $cp_0_0_5 })
         CREATE (movie0)-[:USES]->(equipment0_1)
         MERGE (equipment0_3:Equipment { Id: $cp_0_0_6, Name: $cp_0_0_7, Type: $cp_0_0_8 })
@@ -195,7 +192,7 @@ public class CreateCommandTests
         """);
         sut.Parameters["cp_0_0_0"].Should().Be(movie.Id.ToString());
         sut.Parameters["cp_0_0_1"].Should().Be(movie.Name);
-        sut.Parameters["cp_0_0_2"].Should().Be(movie.Year);
+        sut.Parameters["cp_0_0_2"].Should().Be(movie.ReleaseDate);
         sut.Parameters["cp_0_0_3"].Should().Be(movie.Equipments[0].Id.ToString());
         sut.Parameters["cp_0_0_4"].Should().Be(movie.Equipments[0].Name);
         sut.Parameters["cp_0_0_5"].Should().Be(movie.Equipments[0].Type.ToString());

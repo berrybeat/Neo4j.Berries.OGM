@@ -8,7 +8,7 @@ public class Movie
     }
     public Guid Id { get; set; }
     public string Name { get; set; }
-    public int Year { get; set; }
+    public DateTime ReleaseDate { get; set; }
     public List<Person> Actors { get; set; }
     public Person Director { get; set; }
     public Location Location { get; set; }
