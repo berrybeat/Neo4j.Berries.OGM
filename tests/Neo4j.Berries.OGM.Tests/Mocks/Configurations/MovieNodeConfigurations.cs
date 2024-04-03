@@ -19,6 +19,6 @@ public class MovieNodeConfiguration : INodeConfiguration<Movie>
         builder.HasRelationWithMultiple(x => x.Equipments, "USES", RelationDirection.Out);
         builder.Include(x => x.Id);
         builder.Include(x => x.Name);
-        builder.Include(x => x.Year);
+        builder.Include(x => x.ReleaseDate);
     }
 }

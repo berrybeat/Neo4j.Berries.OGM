@@ -73,8 +73,8 @@ public class DatabaseQueryTests() : TestBase(true)
         var query = TestGraphContext
             .Movies
             .Match();
-
-        (await query.ToListAsync()).Should().HaveCount(10);
+        var movies = await query.ToListAsync();
+        movies.Should().HaveCount(10);
         query.ToList().Should().OnlyHaveUniqueItems();
     }
 

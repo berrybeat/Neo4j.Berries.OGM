@@ -49,6 +49,7 @@ public class GraphContextTests : TestBase
         personRecords[0].Id.Should().Be(person.Id);
         personRecords[0].FirstName.Should().Be(person.FirstName);
         personRecords[0].LastName.Should().Be(person.LastName);
+        personRecords[0].BirthDate.Should().BeNull();
     }
 
     [Fact]
@@ -86,7 +87,8 @@ public class GraphContextTests : TestBase
             {
                 Id = Guid.NewGuid(),
                 FirstName = "Lana",
-                LastName = "Wachowski"
+                LastName = "Wachowski",
+                BirthDate = new DateTime(1999, 01, 01)
             }
         };
         TestGraphContext.Movies.Add(movie);
@@ -105,6 +107,7 @@ public class GraphContextTests : TestBase
         records[0].person.Id.Should().Be(movie.Director.Id);
         records[0].person.FirstName.Should().BeNullOrEmpty("On merge, only Id is included in the properties map.");
         records[0].person.LastName.Should().BeNullOrEmpty("On merge, only Id is included in the properties map.");
+        records[0].person.BirthDate.Should().BeNull("On merge, only Id is included in the properties map.");
     }
 
     [Fact]
@@ -239,6 +242,7 @@ public class GraphContextTests : TestBase
             FirstName = "Farhad",
             LastName = "Nowzari",
             Age = 32,
+            BirthDate = new DateTime(1991, 01, 10),
             Friends = new List<Person> {
                 new Person {
                     Age = 50,
@@ -255,6 +259,8 @@ public class GraphContextTests : TestBase
         farhad.FirstName.Should().Be(person.FirstName);
         farhad.LastName.Should().Be(person.LastName);
         farhad.Age.Should().Be(person.Age);
+        farhad.BirthDate.Should().NotBeNull();
+        farhad.BirthDate.Should().Be(person.BirthDate);
 
         var friend = await TestGraphContext.People.Match(x => x.Where(y => y.Id, person.Friends.First().Id)).FirstOrDefaultAsync();
         friend.Age.Should().Be(person.Friends[0].Age);
