@@ -4,7 +4,7 @@ using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
 
-namespace Neo4j.Berries.OGM.Models;
+namespace Neo4j.Berries.OGM.Models.Sets;
 
 public class UpdateSet<TNode>
 where TNode : class

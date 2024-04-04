@@ -1,5 +1,5 @@
 using Neo4j.Berries.OGM.Contexts;
-using Neo4j.Berries.OGM.Models;
+using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using Neo4j.Driver;
 

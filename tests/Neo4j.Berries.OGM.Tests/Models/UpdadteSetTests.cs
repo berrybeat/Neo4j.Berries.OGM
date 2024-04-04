@@ -1,5 +1,5 @@
 using System.Text;
-using Neo4j.Berries.OGM.Models;
+using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;

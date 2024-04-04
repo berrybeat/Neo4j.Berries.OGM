@@ -5,6 +5,7 @@ using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Match;
+using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Utils;
 using Neo4j.Driver;
 namespace Neo4j.Berries.OGM.Models;
