@@ -9,7 +9,7 @@ public abstract class GraphContext
 {
     public DatabaseContext Database { get; private set; }
     internal StringBuilder CypherBuilder { get; } = new StringBuilder();
-    private IEnumerable<INodeSet> NodeSets { get; set; } = [];
+    internal IEnumerable<INodeSet> NodeSets { get; set; } = [];
     public GraphContext(Neo4jOptions options)
     {
         Database = new DatabaseContext(options);
