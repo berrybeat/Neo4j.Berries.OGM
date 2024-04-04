@@ -31,13 +31,23 @@ public abstract class GraphContext
             NodeSets = NodeSets.Append(instance as INodeSet);
         }
     }
+    /// <summary>
+    /// Creates a new NodeSet with the given label
+    /// </summary>
+    /// <param name="label">The label of the anonymous node</param>
+    /// <returns>The created NodeSet</returns>
     public NodeSet Anonymous(string label)
     {
         var nodeSet = new NodeSet(label, new NodeConfiguration(), NodeSets.Count(), Database, CypherBuilder);
         NodeSets = NodeSets.Append(nodeSet);
         return nodeSet;
     }
-
+    /// <summary>
+    /// Creates a new NodeSet with the given label and configuration
+    /// </summary>
+    /// <param name="label">The label of the anonymous node</param>
+    /// <param name="builder">The configuration builder for the anonymous node</param>
+    /// <returns>The created NodeSet</returns>
     public NodeSet Anonymous(string label, Action<NodeConfigurationBuilder> builder)
     {
         var configBuilder = new NodeConfigurationBuilder();
