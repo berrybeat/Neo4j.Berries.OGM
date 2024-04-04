@@ -1,4 +1,3 @@
-using Neo4j.Berries.OGM.Models;
 using Neo4j.Berries.OGM.Models.Config;
 
 namespace Neo4j.Berries.OGM.Interfaces;

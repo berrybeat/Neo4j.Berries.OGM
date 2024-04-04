@@ -1,4 +1,5 @@
 using Neo4j.Berries.OGM.Enums;
+using Neo4j.Berries.OGM.Interfaces;
 
 namespace Neo4j.Berries.OGM.Utils;
 
