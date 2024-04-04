@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Models;
 
@@ -41,10 +42,7 @@ where TNode : class
             CypherBuilder.Append($", {NodeAlias}.{property} = ${parameterName}");
         else
             CypherBuilder.Append($"{NodeAlias}.{property} = ${parameterName}");
-        if (value is Guid || value is Enum)
-            Parameters.Add(parameterName, value.ToString());
-        else
-            Parameters.Add(parameterName, value);
+        Parameters.Add(parameterName, value.ToNeo4jValue());
         return this;
     }
     /// <summary>
@@ -59,10 +57,7 @@ where TNode : class
             CypherBuilder.Append($", {NodeAlias}.{property} = ${parameterName}");
         else
             CypherBuilder.Append($"{NodeAlias}.{property} = ${parameterName}");
-        if (value is Guid || value is Enum)
-            Parameters.Add(parameterName, value.ToString());
-        else
-            Parameters.Add(parameterName, value);
+        Parameters.Add(parameterName, value.ToNeo4jValue());
         return this;
     }
     /// <summary>
@@ -84,10 +79,8 @@ where TNode : class
                 CypherBuilder.Append($", {NodeAlias}.{prop.Name} = ${parameterName}");
             else
                 CypherBuilder.Append($"{NodeAlias}.{prop.Name} = ${parameterName}");
-            if (value is Guid || value is Enum)
-                Parameters.Add(parameterName, value.ToString());
-            else
-                Parameters.Add(parameterName, value);
+                
+            Parameters.Add(parameterName, value.ToNeo4jValue());
         }
         return this;
     }

@@ -124,7 +124,7 @@ public class Eloquent<TQueryable> where TQueryable : class
         }
         else
         {
-            value = value is Guid ? value.ToString() : value;
+            value = value.ToNeo4jValue();
             if(value is IEnumerable<Guid> enumerable)
             {
                 value = enumerable.Select(x => x.ToString()).ToArray();

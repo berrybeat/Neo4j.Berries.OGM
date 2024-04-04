@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Reflection;
 using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Helpers;
 
@@ -21,16 +22,9 @@ internal class PropertiesHelper(PropertyInfo[] properties, NodeConfiguration nod
         safeKeyValueParameters = new Dictionary<string, string>();
         foreach (var prop in validProperties)
         {
-            var parameterName = string.Format(parameterNameFormat, parameters.Count());
+            var parameterName = string.Format(parameterNameFormat, parameters.Count);
             var value = prop.GetValue(source);
-            if (value is Guid || value is Enum)
-            {
-                parameters.Add(parameterName.Replace("$", ""), value.ToString());
-            }
-            else
-            {
-                parameters.Add(parameterName.Replace("$", ""), value);
-            }
+            parameters.Add(parameterName.Replace("$", ""), value.ToNeo4jValue());
             safeKeyValueParameters.Add(prop.Name, parameterName);
         }
     }
