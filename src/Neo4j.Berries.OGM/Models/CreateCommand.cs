@@ -1,8 +1,10 @@
 using System.Collections;
+using System.Data;
 using System.Reflection;
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Enums;
+using Neo4j.Berries.OGM.Helpers;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
 
@@ -23,7 +25,7 @@ internal class CreateCommand<TNode> : ICommand
     private NodeConfiguration NodeConfig { get; } = new NodeConfiguration();
     public Dictionary<string, object> Parameters { get; set; } = [];
     public string CurrentParameterName => $"$cp_{_nodeSetIndex}_{_index}_{Parameters.Count}";
-
+    public string ParameterFormat => $"$cp_{_nodeSetIndex}_{_index}_{{0}}";
     public CreateCommand(TNode source, int index, int nodeSetIndex, StringBuilder cypherBuilder)
     {
         _nodeSetIndex = nodeSetIndex;
@@ -41,27 +43,10 @@ internal class CreateCommand<TNode> : ICommand
 
     private void AddCreateNodeCypher()
     {
-        var validProperties = Properties.Where(p =>
-            (!NodeConfig.ExcludedProperties.Contains(p.Name) && !NodeConfig.ExcludedProperties.IsEmpty) ||
-            (NodeConfig.IncludedProperties.Contains(p.Name) && !NodeConfig.IncludedProperties.IsEmpty) ||
-            (NodeConfig.ExcludedProperties.IsEmpty && NodeConfig.IncludedProperties.IsEmpty)
-        );
-        var safeKeyValueParameters = new Dictionary<string, string>();
-        foreach (var prop in validProperties)
-        {
-            var parameterName = CurrentParameterName;
-            var value = prop.GetValue(_source);
-            if (value is Guid || value is Enum)
-            {
-                Parameters.Add(parameterName.Replace("$", ""), value.ToString());
-            }
-            else
-            {
-                Parameters.Add(parameterName.Replace("$", ""), value);
-            }
-            safeKeyValueParameters[prop.Name] = parameterName;
-        }
-        var safeParameters = safeKeyValueParameters.Select(x => $"{x.Key}: {x.Value}");
+        new PropertiesHelper(Properties, NodeConfig, _source)
+            .AddNormalizedParameters(Parameters, ParameterFormat, out var safeKeyValueParameters);
+        var safeParameters = BuildSafeParameters(safeKeyValueParameters);
+        
         CypherBuilder.AppendLine($"CREATE ({Alias}:{Label} {{ {string.Join(", ", safeParameters)} }})");
         CypherLines++;
     }
@@ -90,22 +75,13 @@ internal class CreateCommand<TNode> : ICommand
                             (targetNodeConfig.IncludedProperties.Contains(p.Name) && !targetNodeConfig.IncludedProperties.IsEmpty) ||
                             (targetNodeConfig.ExcludedProperties.IsEmpty && targetNodeConfig.IncludedProperties.IsEmpty))
                         ))
-                .Where(p => p.GetValue(value) != null)
-                .Select(p => new KeyValuePair<string, object>(p.Name, p.GetValue(value)));
-            var safeKeyValueParameters = properties.Select(x =>
-            {
-                var parameterName = CurrentParameterName;
-                if (x.Value is Guid || x.Value is Enum)
-                {
-                    Parameters.Add(parameterName.Replace("$", ""), x.Value.ToString());
-                }
-                else
-                {
-                    Parameters.Add(parameterName.Replace("$", ""), x.Value);
-                }
-                return $"{x.Key}: {parameterName}";
-            });
-            CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{relation.EndNodeType.Name} {{ {string.Join(", ", safeKeyValueParameters)} }})");
+                .Where(p => p.GetValue(value) != null);
+
+            new PropertiesHelper(Properties, NodeConfig, value)
+                .AddNormalizedParameters(properties, Parameters, ParameterFormat, out var safeKeyValueParameters);
+            var safeParameters = BuildSafeParameters(safeKeyValueParameters);
+
+            CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{relation.EndNodeType.Name} {{ {string.Join(", ", safeParameters)} }})");
             if (relation.Direction == RelationDirection.In)
             {
                 CypherBuilder.AppendLine($"CREATE ({Alias})<-[:{relation.Label}]-({targetNodeAlias})");
@@ -144,23 +120,12 @@ internal class CreateCommand<TNode> : ICommand
                             (targetNodeConfig.IncludedProperties.Contains(p.Name) && !targetNodeConfig.IncludedProperties.IsEmpty) ||
                             (targetNodeConfig.ExcludedProperties.IsEmpty && targetNodeConfig.IncludedProperties.IsEmpty))
                         ))
-                    .Where(p => p.GetValue(item) != null)
-                    .Select(p => new KeyValuePair<string, object>(p.Name, p.GetValue(item)));
+                    .Where(p => p.GetValue(item) != null);
                 var targetNodeAlias = $"{relation.EndNodeType.Name.ToLower()}{_index}_{CypherLines}";
-                var safeKeyValueParameters = properties.Select(x =>
-                {
-                    var parameterName = CurrentParameterName;
-                    if (x.Value is Guid || x.Value is Enum)
-                    {
-                        Parameters.Add(parameterName.Replace("$", ""), x.Value.ToString());
-                    }
-                    else
-                    {
-                        Parameters.Add(parameterName.Replace("$", ""), x.Value);
-                    }
-                    return $"{x.Key}: {parameterName}";
-                });
-                CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{relation.EndNodeType.Name} {{ {string.Join(", ", safeKeyValueParameters)} }})");
+                new PropertiesHelper(Properties, NodeConfig, item)
+                    .AddNormalizedParameters(properties, Parameters, ParameterFormat, out var safeKeyValueParameters);
+                var safeParameters = BuildSafeParameters(safeKeyValueParameters);
+                CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{relation.EndNodeType.Name} {{ {string.Join(", ", safeParameters)} }})");
                 if (relation.Direction == RelationDirection.In)
                 {
                     CypherBuilder.AppendLine($"CREATE ({Alias})<-[:{relation.Label}]-({targetNodeAlias})");
@@ -172,5 +137,10 @@ internal class CreateCommand<TNode> : ICommand
                 CypherLines += 2;
             }
         }
+    }
+
+    private static IEnumerable<string> BuildSafeParameters(Dictionary<string, string> safeKeyValueParameters)
+    {
+        return safeKeyValueParameters.Select(x => $"{x.Key}: {x.Value}");
     }
 }
