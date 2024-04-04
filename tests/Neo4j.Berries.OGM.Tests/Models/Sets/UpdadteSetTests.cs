@@ -4,7 +4,7 @@ using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 
-namespace Neo4j.Berries.OGM.Tests.Models;
+namespace Neo4j.Berries.OGM.Tests.Models.Sets;
 
 public class UpdateSetTests : TestBase
 {

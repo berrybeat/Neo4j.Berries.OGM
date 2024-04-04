@@ -13,8 +13,19 @@ where TEnd : class
     public IEnumerable<string> EndNodeMergeProperties => EndNodeMergeConfig.IncludedProperties;
     public Type EndNodeType => typeof(TEnd);
 
+    public string EndNodeLabel { get; } = null;
+
     public MergeConfiguration<TEnd> OnMerge()
     {
         return EndNodeMergeConfig;
     }
+}
+
+public class RelationConfiguration(string endNodeLabel, string label, RelationDirection direction) : IRelationConfiguration
+{
+    public string Label => label;
+    public RelationDirection Direction => direction;
+    public Type EndNodeType => null;
+    public string EndNodeLabel => endNodeLabel;
+    public IEnumerable<string> EndNodeMergeProperties => [];
 }

@@ -6,7 +6,7 @@ using Neo4j.Berries.OGM.Models.Match;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 
-namespace Neo4j.Berries.OGM.Tests.Models;
+namespace Neo4j.Berries.OGM.Tests.Models.Match;
 
 public class MatchModelTests
 {

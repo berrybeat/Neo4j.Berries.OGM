@@ -5,7 +5,7 @@ using Neo4j.Berries.OGM.Models.Config;
 
 namespace Neo4j.Berries.OGM.Models.Sets;
 
-public class NodeSet(string label, int nodeSetIndex, DatabaseContext databaseContext, StringBuilder cypherBuilder) : INodeSet
+public class NodeSet(string label, NodeConfiguration nodeConfiguration, int nodeSetIndex, DatabaseContext databaseContext, StringBuilder cypherBuilder) : INodeSet
 {
     private readonly int _nodeSetIndex = nodeSetIndex;
     public DatabaseContext InternalDatabaseContext { get; } = databaseContext;
@@ -16,8 +16,8 @@ public class NodeSet(string label, int nodeSetIndex, DatabaseContext databaseCon
         var command = new CreateCommand(
             node: node,
             label: label,
-            nodeConfig: new NodeConfiguration(),
-            itemIndex: CreateCommands.Count(),
+            nodeConfig: nodeConfiguration,
+            itemIndex: CreateCommands.Count,
             nodeSetIndex: _nodeSetIndex,
             cypherBuilder: CreationCypherBuilder,
             anonymous: true);
@@ -29,8 +29,8 @@ public class NodeSet(string label, int nodeSetIndex, DatabaseContext databaseCon
             node.Select((node, index) => new CreateCommand(
                 node: node,
                 label: label,
-                nodeConfig: new NodeConfiguration(),
-                itemIndex: CreateCommands.Count(),
+                nodeConfig: nodeConfiguration,
+                itemIndex: CreateCommands.Count,
                 nodeSetIndex: _nodeSetIndex,
                 cypherBuilder: CreationCypherBuilder,
                 anonymous: true))

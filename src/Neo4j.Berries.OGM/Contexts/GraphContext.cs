@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Sets;
 
 namespace Neo4j.Berries.OGM.Contexts;
@@ -32,10 +33,20 @@ public abstract class GraphContext
     }
     public NodeSet Anonymous(string label)
     {
-        var nodeSet = new NodeSet(label, NodeSets.Count(), Database, CypherBuilder);
+        var nodeSet = new NodeSet(label, new NodeConfiguration(), NodeSets.Count(), Database, CypherBuilder);
         NodeSets = NodeSets.Append(nodeSet);
         return nodeSet;
     }
+
+    public NodeSet Anonymous(string label, Action<NodeConfigurationBuilder> builder)
+    {
+        var configBuilder = new NodeConfigurationBuilder();
+        builder(configBuilder);
+        var nodeSet = new NodeSet(label, configBuilder.NodeConfiguration, NodeSets.Count(), Database, CypherBuilder);
+        NodeSets = NodeSets.Append(nodeSet);
+        return nodeSet;
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         List<KeyValuePair<string, object>> parameters = [];

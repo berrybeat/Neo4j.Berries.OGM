@@ -70,7 +70,8 @@ internal class CreateCommand : ICommand
                 targetNodeConfig = _targetNodeConfig;
             }
             var relation = NodeConfig.Relations[prop.Name];
-            var targetNodeAlias = $"{relation.EndNodeType.Name.ToLower()}{ItemIndex}_{CypherLines}";
+            var endNodeLabel = string.IsNullOrEmpty(relation.EndNodeLabel) ? relation.EndNodeType.Name : relation.EndNodeLabel;
+            var targetNodeAlias = $"{endNodeLabel.ToLower()}{ItemIndex}_{CypherLines}";
             var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p =>
                         (relation.EndNodeMergeProperties.Any() && relation.EndNodeMergeProperties.Contains(p.Name)) ||
@@ -85,7 +86,7 @@ internal class CreateCommand : ICommand
                 .AddNormalizedParameters(properties, Parameters, ParameterFormat, out var safeKeyValueParameters);
             var safeParameters = BuildSafeParameters(safeKeyValueParameters);
 
-            CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{relation.EndNodeType.Name} {{ {string.Join(", ", safeParameters)} }})");
+            CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{endNodeLabel} {{ {string.Join(", ", safeParameters)} }})");
             if (relation.Direction == RelationDirection.In)
             {
                 CypherBuilder.AppendLine($"CREATE ({Alias})<-[:{relation.Label}]-({targetNodeAlias})");
@@ -125,11 +126,12 @@ internal class CreateCommand : ICommand
                             (targetNodeConfig.ExcludedProperties.IsEmpty && targetNodeConfig.IncludedProperties.IsEmpty))
                         ))
                     .Where(p => p.GetValue(item) != null);
-                var targetNodeAlias = $"{relation.EndNodeType.Name.ToLower()}{ItemIndex}_{CypherLines}";
+                var targetNodeLabel = string.IsNullOrEmpty(relation.EndNodeLabel) ? relation.EndNodeType.Name : relation.EndNodeLabel;
+                var targetNodeAlias = $"{targetNodeLabel.ToLower()}{ItemIndex}_{CypherLines}";
                 new PropertiesHelper(Properties, NodeConfig, item)
                     .AddNormalizedParameters(properties, Parameters, ParameterFormat, out var safeKeyValueParameters);
                 var safeParameters = BuildSafeParameters(safeKeyValueParameters);
-                CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{relation.EndNodeType.Name} {{ {string.Join(", ", safeParameters)} }})");
+                CypherBuilder.AppendLine($"MERGE ({targetNodeAlias}:{targetNodeLabel} {{ {string.Join(", ", safeParameters)} }})");
                 if (relation.Direction == RelationDirection.In)
                 {
                     CypherBuilder.AppendLine($"CREATE ({Alias})<-[:{relation.Label}]-({targetNodeAlias})");

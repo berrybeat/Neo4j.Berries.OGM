@@ -3,7 +3,7 @@ using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Tests.Mocks.Enums;
 
-namespace Neo4j.Berries.OGM.Tests.Models;
+namespace Neo4j.Berries.OGM.Tests.Models.Sets;
 
 public class UpdateTests : TestBase
 {
