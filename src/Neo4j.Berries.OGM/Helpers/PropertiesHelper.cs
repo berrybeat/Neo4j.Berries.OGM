@@ -1,20 +1,31 @@
 using System.Collections;
 using System.Reflection;
+using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Helpers;
 
-internal class PropertiesHelper(PropertyInfo[] properties, NodeConfiguration nodeConfig, object source)
+internal class PropertiesHelper(object source)
 {
-    public void AddNormalizedParameters(Dictionary<string, object> parameters, string parameterNameFormat, out Dictionary<string, string> safeKeyValueParameters)
+    public IEnumerable<PropertyInfo> GetValidProperties(NodeConfiguration nodeConfig, IRelationConfiguration relationConfig = null)
     {
-        var validNodeProperties = properties.Where(p =>
-            (!nodeConfig.ExcludedProperties.Contains(p.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-            (nodeConfig.IncludedProperties.Contains(p.Name) && !nodeConfig.IncludedProperties.IsEmpty) ||
-            (nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)
-        );
-        AddNormalizedParameters(validNodeProperties, parameters, parameterNameFormat, out safeKeyValueParameters);
+        var properties = source.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        if (relationConfig is null)
+            return properties.Where(p =>
+                (!nodeConfig.ExcludedProperties.Contains(p.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
+                (nodeConfig.IncludedProperties.Contains(p.Name) && !nodeConfig.IncludedProperties.IsEmpty) ||
+                (nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)
+            );
+        else
+            return properties.Where(p =>
+                (relationConfig.EndNodeMergeProperties.Any() && relationConfig.EndNodeMergeProperties.Contains(p.Name)) ||
+                (!relationConfig.EndNodeMergeProperties.Any() &&
+                    ((!nodeConfig.ExcludedProperties.Contains(p.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
+                    (nodeConfig.IncludedProperties.Contains(p.Name) && !nodeConfig.IncludedProperties.IsEmpty) ||
+                    (nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty))
+                )
+            ).Where(p => p.GetValue(source) != null);
     }
 
     public void AddNormalizedParameters(IEnumerable<PropertyInfo> validProperties, Dictionary<string, object> parameters, string parameterNameFormat, out Dictionary<string, string> safeKeyValueParameters)
