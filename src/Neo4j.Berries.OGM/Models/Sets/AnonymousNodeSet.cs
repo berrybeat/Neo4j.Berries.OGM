@@ -2,6 +2,7 @@ using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Berries.OGM.Models.Queries;
 
 namespace Neo4j.Berries.OGM.Models.Sets;
 
@@ -35,6 +36,23 @@ public class NodeSet(string label, NodeConfiguration nodeConfiguration, int node
                 cypherBuilder: CreationCypherBuilder,
                 anonymous: true))
         );
+    }
+    /// <summary>
+    /// Starts a query to find nodes in the database and execute Update, Connect, Disconnect on the found relations/nodes.
+    /// </summary>
+    /// <param name="eloquent">The eloquent query to find nodes in the database</param>
+    public NodeQuery Match(Func<Eloquent, Eloquent> eloquent)
+    {
+        var query = new NodeQuery(label, nodeConfiguration, eloquent(new Eloquent(0)), InternalDatabaseContext);
+        return query;
+    }
+    /// <summary>
+    /// Starts a query to find nodes in the database and execute Update, Connect, Disconnect on the found relations/nodes.
+    /// </summary>
+    public NodeQuery Match()
+    {
+        var query = new NodeQuery(label, nodeConfiguration, null, InternalDatabaseContext);
+        return query;
     }
     public void Reset()
     {

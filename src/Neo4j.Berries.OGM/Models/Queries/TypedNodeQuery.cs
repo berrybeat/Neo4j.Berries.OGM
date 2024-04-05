@@ -57,6 +57,7 @@ where TNode : class
     {
         var relationConfig = NodeConfig.Relations[((MemberExpression)expression.Body).Member.Name];
         Type[] typeArgs = [relationConfig.EndNodeType];
+
         var matchType = typeof(MatchRelationModel<>).MakeGenericType(typeArgs);
         Eloquent<TProperty> eloquent = null;
         if (eloquentFunc != null)
