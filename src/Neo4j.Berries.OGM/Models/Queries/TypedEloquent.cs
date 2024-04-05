@@ -2,49 +2,41 @@ using System.Linq.Expressions;
 using Neo4j.Berries.OGM.Enums;
 using Neo4j.Berries.OGM.Utils;
 
-namespace Neo4j.Berries.OGM.Models;
+namespace Neo4j.Berries.OGM.Models.Queries;
 
-public class Eloquent<TQueryable> where TQueryable : class
+public class Eloquent<TQueryable>(int index) : Eloquent(index)
+where TQueryable : class
 {
-    private IEnumerable<ConjunctionGroup> RawClauses = [];
-    public readonly int Index;
-    internal Dictionary<string, object> QueryParameters { get; set; } = [];
-    public Eloquent(int index)
-    {
-        RawClauses = RawClauses.Append(new ConjunctionGroup { Conjunction = "AND" });
-        this.Index = index;
-    }
-    private string CurrentQueryParameterName => $"$qp_{Index}_{QueryParameters.Count}";
     /// <summary>
     /// Will create a new conjunction group with the AND conjunction
     /// </summary>
-    public Eloquent<TQueryable> AND
+    public new Eloquent<TQueryable> AND
     {
         get
         {
-            RawClauses = RawClauses.Append(new ConjunctionGroup { Conjunction = "AND" });
+            _ = base.AND;
             return this;
         }
     }
     /// <summary>
     /// Will create a new conjunction group with the OR conjunction
     /// </summary>
-    public Eloquent<TQueryable> OR
+    public new Eloquent<TQueryable> OR
     {
         get
         {
-            RawClauses = RawClauses.Append(new ConjunctionGroup { Conjunction = "OR" });
+            _ = base.OR;
             return this;
         }
     }
     /// <summary>
     /// Will create a new conjunction group with the XOR conjunction
     /// </summary>
-    public Eloquent<TQueryable> XOR
+    public new Eloquent<TQueryable> XOR
     {
         get
         {
-            RawClauses = RawClauses.Append(new ConjunctionGroup { Conjunction = "XOR" });
+            _ = base.XOR;
             return this;
         }
     }
@@ -78,7 +70,8 @@ public class Eloquent<TQueryable> where TQueryable : class
         }
 
         var opt = OperatorMaps.ComparisonOperatorMap[comparisonOperator];
-        return AddWhereClause(expression, opt, value);
+        AddWhereClause(expression.GetPropertyName(), opt, value);
+        return this;
     }
     /// <summary>
     /// Will add a where clause to the current conjunction group. This where clause checks if the given property <c>IS NULL</c>
@@ -86,7 +79,8 @@ public class Eloquent<TQueryable> where TQueryable : class
     /// <param name="expression">The property to compare</param>
     public Eloquent<TQueryable> WhereIsNull<TProperty>(Expression<Func<TQueryable, TProperty>> expression)
     {
-        return AddWhereClause(expression, "{0} IS NULL", null, true);
+        AddWhereClause(expression.GetPropertyName(), "{0} IS NULL", null, true);
+        return this;
     }
     /// <summary>
     /// Will add a where clause to the current conjunction group. This where clause checks if the given property <c>IS NOT NULL</c>
@@ -94,7 +88,8 @@ public class Eloquent<TQueryable> where TQueryable : class
     /// <param name="expression">The property to compare</param>
     public Eloquent<TQueryable> WhereIsNotNull<TProperty>(Expression<Func<TQueryable, TProperty>> expression)
     {
-        return AddWhereClause(expression, "{0} IS NOT NULL", null, true);
+        AddWhereClause(expression.GetPropertyName(), "{0} IS NOT NULL", null, true);
+        return this;
     }
     /// <summary>
     /// Will add a where clause to the current conjunction group. This where clause checks if the given property <c>IS IN</c> the given values
@@ -103,7 +98,8 @@ public class Eloquent<TQueryable> where TQueryable : class
     /// <param name="values">The values to compare the property to</param>
     public Eloquent<TQueryable> WhereIsIn<TProperty>(Expression<Func<TQueryable, TProperty>> expression, IEnumerable<TProperty> values)
     {
-        return AddWhereClause(expression, "IN", values);
+        AddWhereClause(expression.GetPropertyName(), "IN", values);
+        return this;
     }
     /// <summary>
     /// Will add a where clause to the current conjunction group. This where clause checks if the given property <c>IS NOT IN</c> the given values
@@ -112,41 +108,7 @@ public class Eloquent<TQueryable> where TQueryable : class
     /// <param name="values">The values to compare the property to</param>
     public Eloquent<TQueryable> WhereIsNotIn<TProperty>(Expression<Func<TQueryable, TProperty>> expression, IEnumerable<TProperty> values)
     {
-        return AddWhereClause(expression, "NOT {0} IN {1}", values, true);
-    }
-    private Eloquent<TQueryable> AddWhereClause<TProperty>(Expression<Func<TQueryable, TProperty>> expression, string opt, object value, bool OverwriteOperatorFormat = false)
-    {
-        string prop = expression.GetPropertyName();
-        if (value is null)
-        {
-            //There is no value to parameterize
-            RawClauses.Last().Members = RawClauses.Last().Members.Append(new(prop, opt, null, OverwriteOperatorFormat));
-        }
-        else
-        {
-            value = value.ToNeo4jValue();
-            if(value is IEnumerable<Guid> enumerable)
-            {
-                value = enumerable.Select(x => x.ToString()).ToArray();
-            }
-            var queryParameterName = CurrentQueryParameterName;
-            QueryParameters.Add(queryParameterName.Replace("$", ""), value);
-            RawClauses.Last().Members = RawClauses.Last().Members.Append(new(prop, opt, queryParameterName, OverwriteOperatorFormat));
-        }
+        AddWhereClause(expression.GetPropertyName(), "NOT {0} IN {1}", values, true);
         return this;
-    }
-
-    internal string ToCypher(string alias) {
-        var whereClauseSegments = RawClauses
-        .Where(x => x.Members.Any())
-        .SelectMany((clause, index) =>
-        {
-            if (index == 0)
-            {
-                return new List<string> { clause.ToString(alias) };
-            }
-            return new List<string> { clause.Conjunction, clause.ToString(alias) };
-        });
-        return string.Join(" ", whereClauseSegments);
     }
 }

@@ -1,5 +1,6 @@
 using Neo4j.Berries.OGM.Models;
 using FluentAssertions;
+using Neo4j.Berries.OGM.Models.Queries;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 

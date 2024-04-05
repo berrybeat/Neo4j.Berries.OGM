@@ -8,7 +8,7 @@ using Neo4j.Berries.OGM.Models.Match;
 using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Utils;
 using Neo4j.Driver;
-namespace Neo4j.Berries.OGM.Models;
+namespace Neo4j.Berries.OGM.Models.Queries;
 
 public class NodeQuery<TNode>
 where TNode : class

@@ -1,5 +1,6 @@
 using System.Text;
 using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Queries;
 using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Models.Match;

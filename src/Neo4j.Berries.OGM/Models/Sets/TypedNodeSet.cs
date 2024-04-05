@@ -1,6 +1,7 @@
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Queries;
 
 namespace Neo4j.Berries.OGM.Models.Sets;
 
