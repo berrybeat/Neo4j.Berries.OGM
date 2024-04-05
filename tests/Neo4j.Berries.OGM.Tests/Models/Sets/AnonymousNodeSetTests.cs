@@ -13,10 +13,10 @@ public class AnonymousNodeSetTests
     {
         var sutCypherBuilder = new StringBuilder();
         var sut = new NodeSet("Movie", new NodeConfiguration(), 0, null, sutCypherBuilder);
-        sut.Add(new
+        sut.Add(new Dictionary<string, object>
         {
-            Title = "The Matrix",
-            Year = 1999
+            {"Title", "The Matrix"},
+            {"Year", 1999}
         });
         sutCypherBuilder.ToString().Trim().Should().Be("CREATE (a_0_0:Movie { Title: $cp_0_0_0, Year: $cp_0_0_1 })");
         sut.CreateCommands.Should().HaveCount(1);
@@ -32,15 +32,15 @@ public class AnonymousNodeSetTests
         var sutCypherBuilder = new StringBuilder();
         var sut = new NodeSet("Movie", new NodeConfiguration(), 0, null, sutCypherBuilder);
         sut.AddRange([
-            new
+            new Dictionary<string, object>
             {
-                Title = "The Matrix",
-                Year = 1999
+                {"Title", "The Matrix"},
+                {"Year", 1999}
             },
-            new
+            new Dictionary<string, object>
             {
-                Title = "The Matrix Reloaded",
-                Year = 2003
+                {"Title", "The Matrix Reloaded"},
+                {"Year", 2003}
             },
         ]);
         sutCypherBuilder.ToString().Trim().Should().Be("""
@@ -70,14 +70,13 @@ public class AnonymousNodeSetTests
             nodeSetIndex: 0,
             databaseContext: null,
             cypherBuilder: sutCypherBuilder);
-        sut.Add(new
+        sut.Add(new Dictionary<string, object>
         {
-            Title = "The Matrix",
-            Year = 1999,
-            Director = new
-            {
-                Name = "The Wachowskis"
-            }
+            {"Title", "The Matrix"},
+            {"Year", 1999},
+            {"Director", new Dictionary<string, object> {
+                {"Name", "The Wachowskis"}
+            }}
         });
         sutCypherBuilder.ToString().Trim().Should().Be("""
         CREATE (a_0_0:Movie { Title: $cp_0_0_0, Year: $cp_0_0_1 })
@@ -105,25 +104,21 @@ public class AnonymousNodeSetTests
             nodeSetIndex: 0,
             databaseContext: null,
             cypherBuilder: sutCypherBuilder);
-        sut.Add(new
+        sut.Add(new Dictionary<string, object>
         {
-            Title = "The Matrix",
-            Year = 1999,
-            Director = new
-            {
-                Name = "The Wachowskis"
-            },
-            Actors = new[]
-            {
-                new
-                {
-                    Name = "Keanu Reeves"
+            {"Title", "The Matrix"},
+            {"Year", 1999},
+            {"Director", new Dictionary<string, object> {
+                {"Name", "The Wachowskis"}
+            }},
+            {"Actors", new List<Dictionary<string, object>> {
+                new Dictionary<string, object> {
+                    {"Name", "Keanu Reeves"}
                 },
-                new
-                {
-                    Name = "Laurence Fishburne"
+                new Dictionary<string, object> {
+                    {"Name", "Laurence Fishburne"}
                 }
-            }
+            }}
         });
 
         sutCypherBuilder.ToString().Trim().Should().Be("""

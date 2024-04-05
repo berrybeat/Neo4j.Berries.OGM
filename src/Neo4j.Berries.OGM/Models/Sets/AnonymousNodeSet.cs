@@ -11,7 +11,7 @@ public class NodeSet(string label, NodeConfiguration nodeConfiguration, int node
     public DatabaseContext InternalDatabaseContext { get; } = databaseContext;
     internal StringBuilder CreationCypherBuilder { get; } = cypherBuilder;
     public IList<ICommand> CreateCommands { get; private set; } = [];
-    public void Add(object node)
+    public void Add(Dictionary<string, object> node)
     {
         var command = new CreateCommand(
             node: node,
@@ -23,7 +23,7 @@ public class NodeSet(string label, NodeConfiguration nodeConfiguration, int node
             anonymous: true);
         CreateCommands.Add(command);
     }
-    public void AddRange(IEnumerable<object> node)
+    public void AddRange(IEnumerable<Dictionary<string, object>> node)
     {
         (CreateCommands as List<ICommand>).AddRange(
             node.Select((node, index) => new CreateCommand(

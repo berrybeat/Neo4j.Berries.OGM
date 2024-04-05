@@ -1,4 +1,5 @@
 using System.Collections;
+using System.ComponentModel;
 using System.Data;
 using System.Reflection;
 using System.Text;
@@ -24,7 +25,7 @@ internal class CreateCommand : ICommand
     #endregion
 
     private int CypherLines { get; set; }
-    private PropertyInfo[] Properties => Node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+    private Dictionary<string, object> Properties => Node is Dictionary<string, object> ? Node as Dictionary<string, object> : Node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance).ToDictionary(p => p.Name, p => p.GetValue(Node));
     private string Alias => Anonymous ? $"a_{NodeSetIndex}_{ItemIndex}" : $"{Label.ToLower()}{ItemIndex}";
     public Dictionary<string, object> Parameters { get; set; } = [];
     public string CurrentParameterName => $"$cp_{NodeSetIndex}_{ItemIndex}_{Parameters.Count}";
@@ -63,39 +64,41 @@ internal class CreateCommand : ICommand
     protected void AddSingleRelationsCyphers()
     {
         var singleRelationProperties = Properties
-            .Where(p => NodeConfig.Relations.ContainsKey(p.Name))
-            .Where(p => !p.PropertyType.IsAssignableTo(typeof(ICollection)))
-            .Where(p => p.GetValue(Node) != null);
+            .Where(p => p.Value != null)
+            .Where(p => NodeConfig.Relations.ContainsKey(p.Key))
+            .Where(p => 
+                (!Anonymous && !p.Value.GetType().IsAssignableTo(typeof(ICollection))) ||
+                (Anonymous && p.Value.GetType().IsAssignableTo(typeof(IDictionary))));
         foreach (var prop in singleRelationProperties)
         {
 
             var targetNodeConfig = new NodeConfiguration();
-            if (Neo4jSingletonContext.Configs.TryGetValue(prop.PropertyType.Name, out NodeConfiguration _targetNodeConfig))
+            if (Neo4jSingletonContext.Configs.TryGetValue(prop.Key, out NodeConfiguration _targetNodeConfig))
             {
                 targetNodeConfig = _targetNodeConfig;
             }
-            var relation = NodeConfig.Relations[prop.Name];
-            var value = prop.GetValue(Node);
-            MergeRelation(value, targetNodeConfig, relation);
+            var relation = NodeConfig.Relations[prop.Key];
+            MergeRelation(prop.Value, targetNodeConfig, relation);
         }
     }
     protected void AddRelationCollectionCypher()
     {
-        var relationCollectionProperties = Properties
-            .Where(p => NodeConfig.Relations.ContainsKey(p.Name))
-            .Where(p => p.PropertyType.IsAssignableTo(typeof(ICollection)))
-            .Where(p => p.GetValue(Node) != null)
-            .Where(p => (p.GetValue(Node) as ICollection).Count > 0);
-        foreach (var prop in relationCollectionProperties)
+        var collectionRelationProperties = Properties
+            .Where(p => p.Value != null)
+            .Where(p => NodeConfig.Relations.ContainsKey(p.Key))
+            .Where(p => p.Value.GetType().IsAssignableTo(typeof(ICollection)))
+            .Where(p => !p.Value.GetType().IsAssignableTo(typeof(IDictionary)))
+            .Where(p => (p.Value as ICollection).Count > 0);
+        foreach (var prop in collectionRelationProperties)
         {
-            var collection = prop.GetValue(Node) as ICollection;
+            var collection = prop.Value as ICollection;
             var firstItem = collection.OfType<object>().First();
             var targetNodeConfig = new NodeConfiguration();
-            if (Neo4jSingletonContext.Configs.TryGetValue(prop.PropertyType.Name, out NodeConfiguration _targetNodeConfig))
+            if (Neo4jSingletonContext.Configs.TryGetValue(prop.Key, out NodeConfiguration _targetNodeConfig))
             {
                 targetNodeConfig = _targetNodeConfig;
             }
-            var relation = NodeConfig.Relations[prop.Name];
+            var relation = NodeConfig.Relations[prop.Key];
             foreach (var item in collection)
             {
                 MergeRelation(item, targetNodeConfig, relation);

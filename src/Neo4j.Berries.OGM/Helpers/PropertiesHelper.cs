@@ -8,35 +8,46 @@ namespace Neo4j.Berries.OGM.Helpers;
 
 internal class PropertiesHelper(object source)
 {
-    public IEnumerable<PropertyInfo> GetValidProperties(NodeConfiguration nodeConfig, IRelationConfiguration relationConfig = null)
+    public Dictionary<string, object> GetValidProperties(NodeConfiguration nodeConfig, IRelationConfiguration relationConfig = null)
     {
-        var properties = source.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        Dictionary<string, object> properties = [];
+        if (source is not Dictionary<string, object>)
+        {
+            properties = source.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .ToDictionary(p => p.Name, p => p.GetValue(source));
+        }
+        else
+        {
+            properties = source as Dictionary<string, object>;
+        }
+
         if (relationConfig is null)
             return properties.Where(p =>
-                (!nodeConfig.ExcludedProperties.Contains(p.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-                (nodeConfig.IncludedProperties.Contains(p.Name) && !nodeConfig.IncludedProperties.IsEmpty) ||
+                (!nodeConfig.ExcludedProperties.Contains(p.Key) && !nodeConfig.ExcludedProperties.IsEmpty) ||
+                (nodeConfig.IncludedProperties.Contains(p.Key) && !nodeConfig.IncludedProperties.IsEmpty) ||
                 (nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)
-            );
+            )
+            .ToDictionary(p => p.Key, p => p.Value);
         else
             return properties.Where(p =>
-                (relationConfig.EndNodeMergeProperties.Any() && relationConfig.EndNodeMergeProperties.Contains(p.Name)) ||
+                (relationConfig.EndNodeMergeProperties.Any() && relationConfig.EndNodeMergeProperties.Contains(p.Key)) ||
                 (!relationConfig.EndNodeMergeProperties.Any() &&
-                    ((!nodeConfig.ExcludedProperties.Contains(p.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-                    (nodeConfig.IncludedProperties.Contains(p.Name) && !nodeConfig.IncludedProperties.IsEmpty) ||
+                    ((!nodeConfig.ExcludedProperties.Contains(p.Key) && !nodeConfig.ExcludedProperties.IsEmpty) ||
+                    (nodeConfig.IncludedProperties.Contains(p.Key) && !nodeConfig.IncludedProperties.IsEmpty) ||
                     (nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty))
                 )
-            ).Where(p => p.GetValue(source) != null);
+            ).Where(p => p.Value != null)
+            .ToDictionary(p => p.Key, p => p.Value);
     }
 
-    public void AddNormalizedParameters(IEnumerable<PropertyInfo> validProperties, Dictionary<string, object> parameters, string parameterNameFormat, out Dictionary<string, string> safeKeyValueParameters)
+    public void AddNormalizedParameters(Dictionary<string, object> validProperties, Dictionary<string, object> parameters, string parameterNameFormat, out Dictionary<string, string> safeKeyValueParameters)
     {
         safeKeyValueParameters = new Dictionary<string, string>();
         foreach (var prop in validProperties)
         {
             var parameterName = string.Format(parameterNameFormat, parameters.Count);
-            var value = prop.GetValue(source);
-            parameters.Add(parameterName.Replace("$", ""), value.ToNeo4jValue());
-            safeKeyValueParameters.Add(prop.Name, parameterName);
+            parameters.Add(parameterName.Replace("$", ""), prop.Value.ToNeo4jValue());
+            safeKeyValueParameters.Add(prop.Key, parameterName);
         }
     }
 

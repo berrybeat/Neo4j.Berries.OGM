@@ -190,9 +190,9 @@ public class GraphContextTests : TestBase
     {
         var movie = FakeMovies.GetMovie(1, 1);
         TestGraphContext.Movies.AddRange(movie);
-        TestGraphContext.Anonymous("Building").Add(new {
-            Number = "123987",
-            Name = "Cinema 1"
+        TestGraphContext.Anonymous("Building").Add(new Dictionary<string, object> {
+            {"Number", "123987"},
+            {"Name", "Cinema 1"}
         });
         await TestGraphContext.SaveChangesAsync();
         TestGraphContext.CypherBuilder.ToString().Should().BeEmpty();
