@@ -36,6 +36,7 @@ public abstract class GraphContext
     /// </summary>
     /// <param name="label">The label of the anonymous node</param>
     /// <returns>The created NodeSet</returns>
+    /// <remarks>IMPORTANT: The anonymous method makes the code vulnerable against cypher injection.</remarks>
     public NodeSet Anonymous(string label)
     {
         var nodeSet = new NodeSet(label, new NodeConfiguration(), NodeSets.Count(), Database, CypherBuilder);
@@ -48,6 +49,7 @@ public abstract class GraphContext
     /// <param name="label">The label of the anonymous node</param>
     /// <param name="builder">The configuration builder for the anonymous node</param>
     /// <returns>The created NodeSet</returns>
+    /// <remarks>IMPORTANT: The anonymous method makes the code vulnerable against cypher injection.</remarks>
     public NodeSet Anonymous(string label, Action<NodeConfigurationBuilder> builder)
     {
         var configBuilder = new NodeConfigurationBuilder();
