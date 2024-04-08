@@ -2,6 +2,7 @@ using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Tests.Mocks.Enums;
+using Neo4j.Berries.OGM.Enums;
 
 namespace Neo4j.Berries.OGM.Tests.Models.Sets;
 
@@ -227,5 +228,17 @@ public class UpdateTests : TestBase
         var result = TestGraphContext.Equipments.Match(x => x.Where(y => y.Id, TestEquipmentNode.Id)).UpdateAndReturn(x => x.Set(y => y.Type, EquipmentType.Light));
 
         result.ElementAt(0).Type.Should().Be(EquipmentType.Light);
+    }
+
+    [Fact]
+    public void Should_Update_Movie_Anonymously()
+    {
+        var anonymous = TestGraphContext.Anonymous("Movie", builder =>
+        {
+            builder.HasRelation("Person", "ACTED_IN", RelationDirection.In);
+        });
+        anonymous.Match(x => x.Where("Id", TestNode.Id)).Update(x => x.Set("Name", "Anonymous"));
+        var anonymousMovie = anonymous.Match(x => x.Where("Id", TestNode.Id)).FirstOrDefault<Dictionary<string, object>>();
+        anonymousMovie["Name"].Should().Be("Anonymous");
     }
 }

@@ -43,7 +43,11 @@ public class NodeSet(string label, NodeConfiguration nodeConfiguration, int node
     /// <param name="eloquent">The eloquent query to find nodes in the database</param>
     public NodeQuery Match(Func<Eloquent, Eloquent> eloquent)
     {
-        var query = new NodeQuery(label, nodeConfiguration, eloquent(new Eloquent(0)), InternalDatabaseContext);
+        var query = new NodeQuery(
+            startNodeLabel: label, 
+            eloquent: eloquent(new Eloquent(0)), 
+            databaseContext: InternalDatabaseContext, 
+            nodeConfiguration: nodeConfiguration);
         return query;
     }
     /// <summary>
@@ -51,7 +55,11 @@ public class NodeSet(string label, NodeConfiguration nodeConfiguration, int node
     /// </summary>
     public NodeQuery Match()
     {
-        var query = new NodeQuery(label, nodeConfiguration, null, InternalDatabaseContext);
+        var query = new NodeQuery(
+            startNodeLabel: label, 
+            eloquent: null, 
+            databaseContext: InternalDatabaseContext,
+            nodeConfiguration: nodeConfiguration);
         return query;
     }
     public void Reset()

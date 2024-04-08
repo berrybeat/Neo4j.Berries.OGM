@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
@@ -13,10 +12,10 @@ namespace Neo4j.Berries.OGM.Models.Queries;
 public class NodeQuery
 {
     internal List<IMatch> Matches { get; } = [];
-    protected NodeConfiguration NodeConfig { get; }
+    protected NodeConfiguration NodeConfig { get; set; }
     public DatabaseContext InternalDatabaseContext { get; }
     public string StartNodeLabel { get; }
-    private StringBuilder CypherBuilder { get; } = new StringBuilder();
+    protected StringBuilder CypherBuilder { get; } = new StringBuilder();
     ///<summary>
     /// Returns the cypher query only for the matches. The return statement is not included
     ///</summary>
@@ -25,10 +24,10 @@ public class NodeQuery
     /// Returns the parameters used in the query
     ///</summary>
     public Dictionary<string, object> QueryParameters => Matches.SelectMany(match => match.GetParameters()).ToDictionary(pair => pair.Key, pair => pair.Value);
-    public NodeQuery(string startNodeLabel, NodeConfiguration nodeConfiguration, Eloquent eloquent, DatabaseContext databaseContext)
+    public NodeQuery(string startNodeLabel, Eloquent eloquent, DatabaseContext databaseContext, NodeConfiguration nodeConfiguration = null)
     {
-        var match = new MatchModel(startNodeLabel, eloquent, 0);
-        Matches.Add(match);
+        Matches.Add(new MatchModel(startNodeLabel, eloquent, Matches.Count)
+        .ToCypher(CypherBuilder));
         NodeConfig = nodeConfiguration;
         InternalDatabaseContext = databaseContext;
         StartNodeLabel = startNodeLabel;
@@ -40,7 +39,7 @@ public class NodeQuery
     ///<param name="property">The relation to include in the query</param>
     public NodeQuery WithRelation(string property)
     {
-        return WithRelation(property, null);
+        return WithRelation(property, eloquentFunc: null);
     }
     ///<summary>
     /// Adds a mandatory relation to the query. The property must be defined as a relation.
@@ -49,15 +48,18 @@ public class NodeQuery
     ///<param name="eloquentFunc">A function to build the eloquent query for the relation's target node.</param>
     public NodeQuery WithRelation(string property, Func<Eloquent, Eloquent> eloquentFunc)
     {
+        var eloquent = eloquentFunc is null ? null : eloquentFunc(new Eloquent(Matches.Count));
+        return WithRelation(property, eloquent);
+    }
+    protected NodeQuery WithRelation(string property, Eloquent eloquent)
+    {
         var relationConfig = NodeConfig.Relations[property];
-        var eloquent = eloquentFunc(new Eloquent(Matches.Count));
         var match = new MatchRelationModel(
-            relationConfig.EndNodeLabel,
             Matches.First(),
             relationConfig,
             eloquent,
             Matches.Count)
-            .ToCypher(CypherBuilder);
+        .ToCypher(CypherBuilder);
         Matches.Add(match);
         return this;
     }
@@ -170,7 +172,8 @@ public class NodeQuery
     public void Update(Func<UpdateSet, UpdateSet> updateSetBuilder)
     {
         var cloneBuilder = CypherBuilder.Clone();
-        var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
+        var parameters = PrepareUpdate(updateSet, cloneBuilder);
         InternalDatabaseContext.Run(cloneBuilder.ToString(), parameters);
     }
     ///<summary>
@@ -180,7 +183,8 @@ public class NodeQuery
     public async Task UpdateAsync(Func<UpdateSet, UpdateSet> updateSetBuilder, CancellationToken cancellationToken = default)
     {
         var cloneBuilder = CypherBuilder.Clone();
-        var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
+        var parameters = PrepareUpdate(updateSet, cloneBuilder);
         await InternalDatabaseContext.RunAsync(cloneBuilder.ToString(), parameters, cancellationToken);
     }
     ///<summary>
@@ -191,7 +195,8 @@ public class NodeQuery
     public IEnumerable<T> UpdateAndReturn<T>(Func<UpdateSet, UpdateSet> updateSetBuilder)
     {
         var cloneBuilder = CypherBuilder.Clone();
-        var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
+        var parameters = PrepareUpdate(updateSet, cloneBuilder);
         ExpandCypherWithReturn(cloneBuilder);
         return InternalDatabaseContext.Run(
             cloneBuilder.ToString(),
@@ -207,7 +212,8 @@ public class NodeQuery
     public async Task<IEnumerable<T>> UpdateAndReturnAsync<T>(Func<UpdateSet, UpdateSet> updateSetBuilder, CancellationToken cancellationToken = default)
     {
         var cloneBuilder = CypherBuilder.Clone();
-        var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
+        var parameters = PrepareUpdate(updateSet, cloneBuilder);
         ExpandCypherWithReturn(cloneBuilder);
         return await InternalDatabaseContext.RunAsync(
             cloneBuilder.ToString(),
@@ -216,18 +222,17 @@ public class NodeQuery
             cancellationToken
         );
     }
-    private Dictionary<string, object> PrepareUpdate(Func<UpdateSet, UpdateSet> updateSetBuilder, StringBuilder builder)
+    protected Dictionary<string, object> PrepareUpdate(UpdateSet updateSet, StringBuilder builder)
     {
-        builder.AppendLine($"WITH {Matches.First().StartNodeAlias}");
-        var updateSet = updateSetBuilder(new UpdateSet(builder, Matches.Count, Matches.First().StartNodeAlias));
         var parameters = new List<KeyValuePair<string, object>>();
         parameters.AddRange(QueryParameters.AsEnumerable());
         parameters.AddRange(updateSet.Parameters.AsEnumerable());
         return parameters.ToDictionary(pair => pair.Key, pair => pair.Value);
     }
-    private StringBuilder ExpandCypherWithReturn(StringBuilder builder)
+    protected StringBuilder ExpandCypherWithReturn(StringBuilder builder)
     {
         builder.AppendLine();
+        builder.AppendLine($"WITH {Matches.First().StartNodeAlias}");
         builder.AppendLine($"RETURN {Matches.First().StartNodeAlias}");
         return builder;
     }
@@ -242,7 +247,7 @@ public class NodeQuery
     public void Connect(string property, Func<Eloquent, Eloquent> eloquentFunc)
     {
         var relationConfig = NodeConfig.Relations[property];
-        var cloneBuilder = ConnectionBuilder(relationConfig, eloquentFunc);
+        var cloneBuilder = ConnectionBuilder(relationConfig, eloquentFunc(new Eloquent(Matches.Count)));
         CreateRelation(relationConfig, cloneBuilder);
     }
     ///<summary>
@@ -253,25 +258,25 @@ public class NodeQuery
     public async Task ConnectAsync(string property, Func<Eloquent, Eloquent> eloquentFunc, CancellationToken cancellationToken = default)
     {
         var relationConfig = NodeConfig.Relations[property];
-        var cloneBuilder = ConnectionBuilder(relationConfig, eloquentFunc);
+        var cloneBuilder = ConnectionBuilder(relationConfig, eloquentFunc(new Eloquent(Matches.Count)));
         await CreateRelationAsync(relationConfig, cloneBuilder, cancellationToken);
     }
 
-    private StringBuilder ConnectionBuilder(IRelationConfiguration relationConfiguration, Func<Eloquent, Eloquent> eloquentFunc)
+    protected StringBuilder ConnectionBuilder(IRelationConfiguration relationConfiguration, Eloquent eloquent)
     {
-        var eloquent = eloquentFunc(new Eloquent(Matches.Count));
         var cloneBuilder = CypherBuilder.Clone();
-        var match = new MatchModel(relationConfiguration.EndNodeLabel, eloquent, Matches.Count).ToCypher(cloneBuilder);
+        var endNodeLabel = string.IsNullOrEmpty(relationConfiguration.EndNodeLabel) ? relationConfiguration.EndNodeType.Name : relationConfiguration.EndNodeLabel;
+        var match = new MatchModel(endNodeLabel, eloquent, Matches.Count).ToCypher(cloneBuilder);
         Matches.Add(match);
         return cloneBuilder;
     }
-    private async Task CreateRelationAsync(IRelationConfiguration relationConfig, StringBuilder builder, CancellationToken cancellationToken)
+    protected async Task CreateRelationAsync(IRelationConfiguration relationConfig, StringBuilder builder, CancellationToken cancellationToken)
     {
         builder.BuildConnectionRelation(relationConfig, Matches);
         await InternalDatabaseContext.RunAsync(builder.ToString(), QueryParameters, cancellationToken);
         Matches.RemoveAt(Matches.Count - 1);
     }
-    private void CreateRelation(IRelationConfiguration relationConfig, StringBuilder builder)
+    protected void CreateRelation(IRelationConfiguration relationConfig, StringBuilder builder)
     {
         builder.BuildConnectionRelation(relationConfig, Matches);
         InternalDatabaseContext.Run(builder.ToString(), QueryParameters);
@@ -280,7 +285,7 @@ public class NodeQuery
     #endregion
 
     #region Disconnect
-        ///<summary>
+    ///<summary>
     /// Removes the last relation given to the query between the root node and the relation's target node
     ///</summary>
     ///<exception cref="InvalidOperationException">Thrown when the last match is not a relation</exception>
