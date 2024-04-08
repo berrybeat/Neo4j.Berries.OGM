@@ -8,12 +8,17 @@ namespace Neo4j.Berries.OGM.Tests.Models.Sets;
 
 public class UpdateTests : TestBase
 {
-    private readonly Movie TestNode;
+    private readonly Movie TestMovieNode;
     private readonly Equipment TestEquipmentNode;
+    private readonly Person TestPersonNode;
+
     public UpdateTests() : base(true)
     {
-        TestNode = TestGraphContext.Movies.Match().FirstOrDefaultAsync().Result;
+        TestMovieNode = TestGraphContext.Movies.Match().FirstOrDefault();
         TestEquipmentNode = TestGraphContext.Equipments.Match().FirstOrDefault();
+        TestPersonNode = TestGraphContext.People.Match()
+            .WithRelation(x => x.MoviesAsActor, x => x.Where(y => y.Id, ComparisonOperator.NotEquals, TestMovieNode.Id))
+            .FirstOrDefault();
     }
 
     [Fact]
@@ -21,24 +26,24 @@ public class UpdateTests : TestBase
     {
         TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
             .Update(x => x.Set(y => y.Name, "The Punisher"));
 
-        var updatedNode = await TestGraphContext.Movies.Match(x => x.Where(y => y.Id, TestNode.Id)).FirstOrDefaultAsync();
+        var updatedNode = await TestGraphContext.Movies.Match(x => x.Where(y => y.Id, TestMovieNode.Id)).FirstOrDefaultAsync();
         updatedNode.Should().NotBeNull();
-        updatedNode.Id.Should().Be(TestNode.Id);
+        updatedNode.Id.Should().Be(TestMovieNode.Id);
         updatedNode.Name.Should().Be("The Punisher");
     }
     [Fact]
     public async void Should_Update_And_Return_Value()
     {
-        TestNode.ReleaseDate = new DateTime(1980, 01, 01);
+        TestMovieNode.ReleaseDate = new DateTime(1980, 01, 01);
         var result = await TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
-            .UpdateAndReturnAsync(x => x.Set(TestNode));
-        result.ElementAt(0).ReleaseDate.Should().Be(TestNode.ReleaseDate);
-        result.ElementAt(0).Id.Should().Be(TestNode.Id);
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
+            .UpdateAndReturnAsync(x => x.Set(TestMovieNode));
+        result.ElementAt(0).ReleaseDate.Should().Be(TestMovieNode.ReleaseDate);
+        result.ElementAt(0).Id.Should().Be(TestMovieNode.Id);
     }
 
     [Fact]
@@ -55,12 +60,12 @@ public class UpdateTests : TestBase
         await TestGraphContext.SaveChangesAsync();
 
         await TestGraphContext.Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
             .ConnectAsync(x => x.Actors, x => x.Where(y => y.Id, newPerson.Id));
 
         var count = await TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
             .WithRelation(x => x.Actors, x => x.Where(y => y.Id, newPerson.Id))
             .CountAsync();
 
@@ -72,7 +77,7 @@ public class UpdateTests : TestBase
     {
         var act = () => TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
             .DisconnectAsync();
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -83,18 +88,18 @@ public class UpdateTests : TestBase
         var person = await TestGraphContext
             .People
             .Match()
-            .WithRelation(x => x.MoviesAsActor, x => x.Where(y => y.Id, TestNode.Id))
+            .WithRelation(x => x.MoviesAsActor, x => x.Where(y => y.Id, TestMovieNode.Id))
             .FirstOrDefaultAsync();
 
         await TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
             .WithRelation(x => x.Actors, x => x.Where(y => y.Id, person.Id))
             .DisconnectAsync();
 
         var count = await TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
             .WithRelation(x => x.Actors, x => x.Where(y => y.Id, person.Id))
             .CountAsync();
 
@@ -106,17 +111,17 @@ public class UpdateTests : TestBase
     {
         var archivedNodes = await TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id))
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id))
             .ArchiveAsync();
 
         archivedNodes.Should().HaveCount(1);
-        archivedNodes.Should().Contain(x => x.Id == TestNode.Id);
+        archivedNodes.Should().Contain(x => x.Id == TestMovieNode.Id);
 
         var records = OpenSession(session =>
         {
             return session.Run(
                 "MATCH(m:Movie WHERE m.Id=$p0) return m.ArchivedAt as archivedAt",
-                new Dictionary<string, object> { { "p0", TestNode.Id.ToString() } })
+                new Dictionary<string, object> { { "p0", TestMovieNode.Id.ToString() } })
                 .Select(x =>
                 {
                     var offset = DateTimeOffset.FromUnixTimeMilliseconds(x.Get<long>("archivedAt"));
@@ -184,7 +189,7 @@ public class UpdateTests : TestBase
         var query = TestGraphContext
             .People
             .Match()
-            .WithRelation(x => x.MoviesAsActor, x => x.Where(y => y.Id, TestNode.Id));
+            .WithRelation(x => x.MoviesAsActor, x => x.Where(y => y.Id, TestMovieNode.Id));
 
         (await query.CountAsync()).Should().BeGreaterThan(0);
 
@@ -209,16 +214,16 @@ public class UpdateTests : TestBase
     {
         var query = TestGraphContext
             .Movies
-            .Match(x => x.Where(y => y.Id, TestNode.Id));
+            .Match(x => x.Where(y => y.Id, TestMovieNode.Id));
 
         var releaseDate = new DateTime(2004, 06, 10);
         await query.UpdateAsync(x => x
                 .Set(y => y.Name, "The Punisher")
                 .Set(y => y.ReleaseDate, releaseDate));
 
-        var updatedNode = await TestGraphContext.Movies.Match(x => x.Where(y => y.Id, TestNode.Id)).FirstOrDefaultAsync();
+        var updatedNode = await TestGraphContext.Movies.Match(x => x.Where(y => y.Id, TestMovieNode.Id)).FirstOrDefaultAsync();
         updatedNode.Should().NotBeNull();
-        updatedNode.Id.Should().Be(TestNode.Id);
+        updatedNode.Id.Should().Be(TestMovieNode.Id);
         updatedNode.Name.Should().Be("The Punisher");
         updatedNode.ReleaseDate.Should().Be(releaseDate);
     }
@@ -231,14 +236,48 @@ public class UpdateTests : TestBase
     }
 
     [Fact]
-    public void Should_Update_Movie_Anonymously()
+    public void Should_Update_Movie_By_Property_Anonymously()
+    {
+        var anonymous = TestGraphContext.Anonymous("Movie");
+        anonymous.Match(x => x.Where("Id", TestMovieNode.Id)).Update(x => x.Set("Name", "Anonymous"));
+        var anonymousMovie = anonymous.Match(x => x.Where("Id", TestMovieNode.Id)).FirstOrDefault<Dictionary<string, object>>();
+        anonymousMovie["Name"].ToString().Should().Be("Anonymous");
+    }
+
+    [Fact]
+    public void Should_Update_Movie_By_Object_Anonymously()
+    {
+        var anonymous = TestGraphContext.Anonymous("Movie");
+        anonymous
+            .Match(
+                x => x.Where("Id", TestMovieNode.Id)
+            )
+            .Update(x =>
+                x.Set(new Dictionary<string, object> {
+                    { "Name", "Anonymous" },
+                    { "ReleaseDate", new DateTime(2050, 01, 01, 0, 0, 0) }
+                })
+            );
+        var anonymousMovie = anonymous.Match(x => x.Where("Id", TestMovieNode.Id)).FirstOrDefault<Dictionary<string, object>>();
+        anonymousMovie["Name"].ToString().Should().Be("Anonymous");
+        anonymousMovie["ReleaseDate"].ToString().Should().Be("2050-01-01T00:00:00");
+    }
+    [Fact]
+    public void Should_Connect_Node_Anonymously()
     {
         var anonymous = TestGraphContext.Anonymous("Movie", builder =>
         {
-            builder.HasRelation("Person", "ACTED_IN", RelationDirection.In);
+            builder.HasRelation("Actors", "Person", "ACTED_IN", RelationDirection.In);
         });
-        anonymous.Match(x => x.Where("Id", TestNode.Id)).Update(x => x.Set("Name", "Anonymous"));
-        var anonymousMovie = anonymous.Match(x => x.Where("Id", TestNode.Id)).FirstOrDefault<Dictionary<string, object>>();
-        anonymousMovie["Name"].Should().Be("Anonymous");
+        anonymous
+            .Match(
+                x => x.Where("Id", TestMovieNode.Id)
+            )
+            .Connect("Actors", x => x.Where("Id", TestPersonNode.Id));
+        
+        var testAnonymousMovie = anonymous.Match(x => x.Where("Id", TestMovieNode.Id))
+            .WithRelation("Actors", x => x.Where("Id", TestPersonNode.Id))
+            .FirstOrDefault<Dictionary<string, object>>();
+        testAnonymousMovie.Should().NotBeNull();
     }
 }
