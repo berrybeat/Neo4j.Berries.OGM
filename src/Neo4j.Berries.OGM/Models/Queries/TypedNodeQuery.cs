@@ -244,6 +244,11 @@ where TNode : class
     #endregion
 
     #region Connection
+    ///<summary>
+    /// Connects the nodes found in the query to another node
+    ///</summary>
+    ///<param name="expression">The relation to connect the nodes with</param>
+    ///<param name="eloquentFunc">A function to build the eloquent query for the relation's target node</param>
     public void Connect<TProperty>(Expression<Func<TNode, ICollection<TProperty>>> expression, Func<Eloquent<TProperty>, Eloquent<TProperty>> eloquentFunc)
     where TProperty : class
     {
@@ -361,7 +366,7 @@ where TNode : class
     public IEnumerable<TNode> Archive()
     {
         var key = Matches.First().StartNodeAlias;
-        var archiveCypher = PrepareArchive(CypherBuilder).ToString();
+        var archiveCypher = PrepareArchive().ToString();
         return ExecuteWithMap(record => record.Convert<TNode>(key), archiveCypher);
     }
 
@@ -372,11 +377,11 @@ where TNode : class
     public async Task<IEnumerable<TNode>> ArchiveAsync(CancellationToken cancellationToken = default)
     {
         var key = Matches.First().StartNodeAlias;
-        var archiveCypher = PrepareArchive(CypherBuilder).ToString();
+        var archiveCypher = PrepareArchive().ToString();
         return await ExecuteWithMapAsync(record => record.Convert<TNode>(key), archiveCypher, cancellationToken);
     }
 
-    private StringBuilder PrepareArchive(StringBuilder builder)
+    private StringBuilder PrepareArchive()
     {
         var key = Matches.First().StartNodeAlias;
         return CypherBuilder.AppendLines(
