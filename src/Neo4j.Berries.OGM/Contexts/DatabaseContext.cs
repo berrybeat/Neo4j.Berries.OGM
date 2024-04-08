@@ -5,12 +5,18 @@ namespace Neo4j.Berries.OGM.Contexts;
 public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
 {
     public IDriver Driver { get; private set; } = neo4jOptions.Driver;
-    private ISession Session { get; } = neo4jOptions.Driver.Session(opt =>
+    /// <summary>
+    /// This getter opens a session with database from the config. If the database is not set, it will open a session with the default database.
+    /// </summary>
+    public ISession Session { get; } = neo4jOptions.Driver.Session(opt =>
     {
         if (!string.IsNullOrEmpty(neo4jOptions.Database))
             opt.WithDatabase(neo4jOptions.Database);
     });
-    private IAsyncSession AsyncSession { get; } = neo4jOptions.Driver.AsyncSession(opt =>
+    /// <summary>
+    /// This getter opens a session with database from the config. If the database is not set, it will open a session with the default database.
+    /// </summary>
+    public IAsyncSession AsyncSession { get; } = neo4jOptions.Driver.AsyncSession(opt =>
     {
         if (!string.IsNullOrEmpty(neo4jOptions.Database))
             opt.WithDatabase(neo4jOptions.Database);
