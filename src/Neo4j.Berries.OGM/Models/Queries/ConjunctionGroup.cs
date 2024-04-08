@@ -1,4 +1,4 @@
-namespace Neo4j.Berries.OGM.Models;
+namespace Neo4j.Berries.OGM.Models.Queries;
 
 internal class ConjunctionGroup
 {

@@ -3,7 +3,6 @@ using Neo4j.Berries.OGM.Enums;
 using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks;
 using FluentAssertions;
-using Microsoft.VisualStudio.TestPlatform.CrossPlatEngine;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 

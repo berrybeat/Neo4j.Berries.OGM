@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text;
 using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Berries.OGM.Models.Sets;
 
 namespace Neo4j.Berries.OGM.Contexts;
 
@@ -8,25 +10,51 @@ public abstract class GraphContext
 {
     public DatabaseContext Database { get; private set; }
     internal StringBuilder CypherBuilder { get; } = new StringBuilder();
-    private IEnumerable<PropertyInfo> NodeSets { get; set; }
+    internal IEnumerable<INodeSet> NodeSets { get; set; } = [];
     public GraphContext(Neo4jOptions options)
     {
         Database = new DatabaseContext(options);
-        InitDbSets();
+        InitNodeSets();
     }
 
-    private void InitDbSets()
+    private void InitNodeSets()
     {
-        NodeSets = GetType()
+        var nodeSetProps = GetType()
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(x =>
                 x.PropertyType.IsAssignableTo(typeof(INodeSet)));
-        for (var i = 0; i < NodeSets.Count(); i++)
+        for (var i = 0; i < nodeSetProps.Count(); i++)
         {
-            var nodeSet = NodeSets.ElementAt(i);
-            var instance = Activator.CreateInstance(nodeSet.PropertyType, i, Database, CypherBuilder);
-            nodeSet.SetValue(this, instance);
+            var nodeSetProp = nodeSetProps.ElementAt(i);
+            var instance = Activator.CreateInstance(nodeSetProp.PropertyType, i, Database, CypherBuilder);
+            nodeSetProp.SetValue(this, instance);
+            NodeSets = NodeSets.Append(instance as INodeSet);
         }
+    }
+    /// <summary>
+    /// Creates a new NodeSet with the given label
+    /// </summary>
+    /// <param name="label">The label of the anonymous node</param>
+    /// <returns>The created NodeSet</returns>
+    public NodeSet Anonymous(string label)
+    {
+        var nodeSet = new NodeSet(label, new NodeConfiguration(), NodeSets.Count(), Database, CypherBuilder);
+        NodeSets = NodeSets.Append(nodeSet);
+        return nodeSet;
+    }
+    /// <summary>
+    /// Creates a new NodeSet with the given label and configuration
+    /// </summary>
+    /// <param name="label">The label of the anonymous node</param>
+    /// <param name="builder">The configuration builder for the anonymous node</param>
+    /// <returns>The created NodeSet</returns>
+    public NodeSet Anonymous(string label, Action<NodeConfigurationBuilder> builder)
+    {
+        var configBuilder = new NodeConfigurationBuilder();
+        builder(configBuilder);
+        var nodeSet = new NodeSet(label, configBuilder.NodeConfiguration, NodeSets.Count(), Database, CypherBuilder);
+        NodeSets = NodeSets.Append(nodeSet);
+        return nodeSet;
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -55,18 +83,16 @@ public abstract class GraphContext
 
     private void GetCreateParameters(List<KeyValuePair<string, object>> parameters)
     {
-        foreach (var prop in NodeSets)
+        foreach (var nodeSet in NodeSets)
         {
-            var nodeSet = (INodeSet)prop.GetValue(this);
             var nodeSetParams = nodeSet.CreateCommands.SelectMany(createCommand => createCommand.Parameters);
             parameters.AddRange(nodeSetParams);
         }
     }
     private void ResetCreateCommands()
     {
-        foreach (var prop in NodeSets)
+        foreach (var nodeSet in NodeSets)
         {
-            var nodeSet = (INodeSet)prop.GetValue(this);
             nodeSet.Reset();
         }
     }

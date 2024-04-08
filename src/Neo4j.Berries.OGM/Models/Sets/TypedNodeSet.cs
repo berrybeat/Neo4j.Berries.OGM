@@ -1,17 +1,15 @@
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
-using Neo4j.Driver;
+using Neo4j.Berries.OGM.Models.Queries;
 
-namespace Neo4j.Berries.OGM.Models;
+namespace Neo4j.Berries.OGM.Models.Sets;
 
 public class NodeSet<TNode>(int nodeSetIndex, DatabaseContext databaseContext, StringBuilder cypherBuilder) : INodeSet
 where TNode : class
 {
     private readonly int _nodeSetIndex = nodeSetIndex;
-
     public DatabaseContext InternalDatabaseContext { get; } = databaseContext;
-    internal IDriver Neo4jDriver { get; }
     internal StringBuilder CreationCypherBuilder { get; } = cypherBuilder;
     public IList<ICommand> CreateCommands { get; private set; } = [];
 

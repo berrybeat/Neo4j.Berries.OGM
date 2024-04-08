@@ -1,4 +1,5 @@
 using Neo4j.Berries.OGM.Enums;
+using Neo4j.Berries.OGM.Interfaces;
 
 namespace Neo4j.Berries.OGM.Models.Config;
 
@@ -8,12 +9,23 @@ where TEnd : class
 {
     public string Label { get; } = label;
     public RelationDirection Direction { get; } = direction;
-    public Type EndNodeType { get; } = typeof(TEnd);
     private MergeConfiguration<TEnd> EndNodeMergeConfig { get; } = new MergeConfiguration<TEnd>();
     public IEnumerable<string> EndNodeMergeProperties => EndNodeMergeConfig.IncludedProperties;
+    public Type EndNodeType => typeof(TEnd);
+
+    public string EndNodeLabel { get; } = null;
 
     public MergeConfiguration<TEnd> OnMerge()
     {
         return EndNodeMergeConfig;
     }
+}
+
+public class RelationConfiguration(string endNodeLabel, string label, RelationDirection direction) : IRelationConfiguration
+{
+    public string Label => label;
+    public RelationDirection Direction => direction;
+    public Type EndNodeType => null;
+    public string EndNodeLabel => endNodeLabel;
+    public IEnumerable<string> EndNodeMergeProperties => [];
 }

@@ -1,8 +1,9 @@
 using System.Collections.Concurrent;
+using Neo4j.Berries.OGM.Interfaces;
 
 namespace Neo4j.Berries.OGM.Models.Config;
 
-internal class NodeConfiguration
+public class NodeConfiguration
 {
     public ConcurrentBag<string> IncludedProperties { get; set; } = [];
     public ConcurrentBag<string> ExcludedProperties { get; set; } = [];
