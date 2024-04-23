@@ -34,6 +34,10 @@ public class Neo4jSingletonContextTests : TestBase
 
         personNodeConfig.Relations[nameof(Person.MoviesAsDirector)].Direction.Should().Be(RelationDirection.Out);
         personNodeConfig.Relations[nameof(Person.MoviesAsDirector)].EndNodeType.Should().Be(typeof(Movie));
+
+        personNodeConfig.Relations[nameof(Person.Awards)].EndNodeType.Should().Be(typeof(Award));
+        personNodeConfig.Relations[nameof(Person.Awards)].EndNodeMergeProperties.Should().Contain(nameof(Award.Name));
+        personNodeConfig.Relations[nameof(Person.Awards)].EndNodeMergeProperties.Should().Contain(nameof(Award.Category));
     }
     [Fact]
     public void Should_Add_Relations_In_Properties_Map_Exclusion_List()

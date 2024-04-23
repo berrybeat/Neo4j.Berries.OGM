@@ -21,6 +21,13 @@ where TEnd : class
     }
 }
 
+public class RelationConfiguration<TStart, TRelation, TEnd>(string label, RelationDirection direction): RelationConfiguration<TStart, TEnd>(label, direction)
+where TStart: class
+where TRelation: class
+where TEnd: class
+{
+}
+
 public class RelationConfiguration(string endNodeLabel, string label, RelationDirection direction) : IRelationConfiguration
 {
     public string Label => label;

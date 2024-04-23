@@ -48,7 +48,7 @@ internal class CreateCommand : ICommand
     {
         var propertiesHelper = new PropertiesHelper(Node);
         var validProperties = propertiesHelper.GetValidProperties(NodeConfig);
-        new PropertiesHelper(Node)
+        PropertiesHelper
             .AddNormalizedParameters(
                 validProperties,
                 Parameters,
@@ -66,11 +66,11 @@ internal class CreateCommand : ICommand
             .Where(p => p.Value != null)
             .Where(p => NodeConfig.Relations.ContainsKey(p.Key))
             .Where(p => 
-                (!Anonymous && !p.Value.GetType().IsAssignableTo(typeof(ICollection))) ||
-                (Anonymous && p.Value.GetType().IsAssignableTo(typeof(IDictionary))));
+                (!Anonymous && !p.Value.GetType().IsAssignableTo(typeof(ICollection)) &&
+                !p.Value.GetType().IsGenericType) ||
+                Anonymous && p.Value.GetType().IsAssignableTo(typeof(IDictionary)));
         foreach (var prop in singleRelationProperties)
         {
-
             var targetNodeConfig = new NodeConfiguration();
             if (Neo4jSingletonContext.Configs.TryGetValue(prop.Key, out NodeConfiguration _targetNodeConfig))
             {
@@ -108,7 +108,7 @@ internal class CreateCommand : ICommand
     {
         var propertiesHelper = new PropertiesHelper(source);
         var validProperties = propertiesHelper.GetValidProperties(nodeConfig, relation);
-        propertiesHelper.AddNormalizedParameters(validProperties, Parameters, ParameterFormat, out var safeKeyValueParameters);
+        PropertiesHelper.AddNormalizedParameters(validProperties, Parameters, ParameterFormat, out var safeKeyValueParameters);
         var endNodeLabel = string.IsNullOrEmpty(relation.EndNodeLabel) ? relation.EndNodeType.Name : relation.EndNodeLabel;
         var endNodeAlias = $"{endNodeLabel.ToLower()}{ItemIndex}_{CypherLines}";
         var safeParameters = BuildSafeParameters(safeKeyValueParameters);

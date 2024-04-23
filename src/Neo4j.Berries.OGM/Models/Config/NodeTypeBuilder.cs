@@ -22,13 +22,26 @@ where TNode : class
     }
 
     /// <summary>
-    /// The property will be used to create a relation with another nodes
+    /// The property will be used to create a relation with other nodes
     /// </summary>
     public RelationConfiguration<TNode, TProperty> HasRelationWithMultiple<TProperty>(Expression<Func<TNode, IEnumerable<TProperty>>> expression, string label, RelationDirection direction)
     where TProperty : class
     {
         var propertyName = ((MemberExpression)expression.Body).Member.Name;
         var relationConfig = new RelationConfiguration<TNode, TProperty>(label, direction);
+        Config.Relations[propertyName] = relationConfig;
+        Exclude(expression);
+        return relationConfig;
+    }
+    /// <summary>
+    /// The property will be used to create a relation with other nodes
+    /// </summary>
+    public RelationConfiguration<TNode, TRelation, TProperty> HasRelationWithMultiple<TRelation, TProperty>(Expression<Func<TNode, Relations<TRelation, TProperty>>> expression, string label, RelationDirection direction)
+    where TRelation : class
+    where TProperty : class
+    {
+        var propertyName = ((MemberExpression)expression.Body).Member.Name;
+        var relationConfig = new RelationConfiguration<TNode, TRelation, TProperty>(label, direction);
         Config.Relations[propertyName] = relationConfig;
         Exclude(expression);
         return relationConfig;

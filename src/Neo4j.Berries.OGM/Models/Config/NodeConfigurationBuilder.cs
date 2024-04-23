@@ -48,7 +48,7 @@ public class NodeConfigurationBuilder
     /// <param name="Direction">The direction of the relation</param>
     public NodeConfigurationBuilder HasRelation(string TargetNodeLabel, string RelationLabel, RelationDirection Direction)
     {
-        this.HasRelation(TargetNodeLabel, TargetNodeLabel, RelationLabel, Direction);
+        HasRelation(TargetNodeLabel, TargetNodeLabel, RelationLabel, Direction);
         return this;
     }
     /// <summary>

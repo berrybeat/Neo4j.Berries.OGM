@@ -13,8 +13,10 @@ internal class PropertiesHelper(object source)
         Dictionary<string, object> properties = [];
         if (source is not Dictionary<string, object>)
         {
-            properties = source.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .ToDictionary(p => p.Name, p => p.GetValue(source));
+            properties = source
+                .GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .ToDictionary(p => p.Name, p => p.GetValue(source));
         }
         else
         {
@@ -40,9 +42,9 @@ internal class PropertiesHelper(object source)
             .ToDictionary(p => p.Key, p => p.Value);
     }
 
-    public void AddNormalizedParameters(Dictionary<string, object> validProperties, Dictionary<string, object> parameters, string parameterNameFormat, out Dictionary<string, string> safeKeyValueParameters)
+    public static void AddNormalizedParameters(Dictionary<string, object> validProperties, Dictionary<string, object> parameters, string parameterNameFormat, out Dictionary<string, string> safeKeyValueParameters)
     {
-        safeKeyValueParameters = new Dictionary<string, string>();
+        safeKeyValueParameters = [];
         foreach (var prop in validProperties)
         {
             var parameterName = string.Format(parameterNameFormat, parameters.Count);
