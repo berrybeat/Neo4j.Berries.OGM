@@ -1,14 +1,14 @@
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Queries;
 
 namespace Neo4j.Berries.OGM.Models.Sets;
 
-public class NodeSet<TNode>(int nodeSetIndex, DatabaseContext databaseContext, StringBuilder cypherBuilder) : INodeSet
+public class NodeSet<TNode>(int nodeSetIndex, NodeConfiguration nodeConfig, DatabaseContext databaseContext, StringBuilder cypherBuilder) : INodeSet
 where TNode : class
 {
-    private readonly int _nodeSetIndex = nodeSetIndex;
     public DatabaseContext InternalDatabaseContext { get; } = databaseContext;
     internal StringBuilder CreationCypherBuilder { get; } = cypherBuilder;
     public IList<ICommand> CreateCommands { get; private set; } = [];
@@ -18,7 +18,7 @@ where TNode : class
     /// </summary>
     public TNode Add(TNode node)
     {
-        CreateCommands.Add(new CreateCommand<TNode>(node, CreateCommands.Count, _nodeSetIndex, CreationCypherBuilder));
+        CreateCommands.Add(new CreateCommand<TNode>(node, nodeConfig, CreateCommands.Count, nodeSetIndex, CreationCypherBuilder));
         return node;
     }
     /// <summary>
@@ -26,9 +26,7 @@ where TNode : class
     /// </summary>
     public void AddRange(IEnumerable<TNode> nodes)
     {
-        (CreateCommands as List<ICommand>).AddRange(
-            nodes.Select((node, index) => new CreateCommand<TNode>(node, CreateCommands.Count, _nodeSetIndex, CreationCypherBuilder))
-        );
+        foreach (var node in nodes) Add(node);
     }
     /// <summary>
     /// Starts a query to find nodes in the database and execute Update, Connect, Disconnect on the found relations/nodes.

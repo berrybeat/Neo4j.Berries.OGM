@@ -5,18 +5,21 @@ using Neo4j.Berries.OGM.Models;
 using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
-
+using Neo4j.Berries.OGM.Models.Config;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 
 
 public class CreateCommandTests
 {
+    private readonly NodeConfiguration movieNodeConfig;
+
     public StringBuilder CypherBuilder { get; }
 
     public CreateCommandTests()
     {
-        _ = new Neo4jSingletonContext(this.GetType().Assembly);
+        _ = new Neo4jSingletonContext(GetType().Assembly);
+        movieNodeConfig = Neo4jSingletonContext.Configs[nameof(Movie)];
         CypherBuilder = new StringBuilder();
     }
     [Fact]
@@ -29,7 +32,7 @@ public class CreateCommandTests
             Id = Guid.NewGuid(),
             Name = "Matrix"
         };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
+        var sut = new CreateCommand<Movie>(movie, movieNodeConfig, index, nodeSetIndex, CypherBuilder);
         sut.Parameters.Should().HaveCount(3);
         sut.Parameters[$"cp_{nodeSetIndex}_{index}_0"].Should().Be(movie.Id.ToString());
         sut.Parameters[$"cp_{nodeSetIndex}_{index}_1"].Should().Be(movie.Name);
@@ -45,7 +48,7 @@ public class CreateCommandTests
             Id = Guid.NewGuid(),
             Name = "Matrix"
         };
-        _ = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
+        _ = new CreateCommand<Movie>(movie, movieNodeConfig, index, nodeSetIndex, CypherBuilder);
         CypherBuilder.ToString().Should().Be($"CREATE (movie0:Movie {{ Id: $cp_{nodeSetIndex}_{index}_0, Name: $cp_{nodeSetIndex}_{index}_1, ReleaseDate: $cp_{nodeSetIndex}_{index}_2 }})\n");
     }
     [Fact]
@@ -58,7 +61,7 @@ public class CreateCommandTests
             Id = Guid.NewGuid(),
             Name = "Matrix"
         };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
+        var sut = new CreateCommand<Movie>(movie, movieNodeConfig, index, nodeSetIndex, CypherBuilder);
         sut.Parameters[$"cp_{nodeSetIndex}_{index}_0"].Should().BeOfType<string>();
     }
     [Fact]
@@ -76,7 +79,7 @@ public class CreateCommandTests
                 Id = Guid.NewGuid(),
             }
         };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
+        var sut = new CreateCommand<Movie>(movie, movieNodeConfig, index, nodeSetIndex, CypherBuilder);
 
         CypherBuilder.ToString().Trim().Should().Be("""
         CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
@@ -107,7 +110,7 @@ public class CreateCommandTests
                 }
             ]
         };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
+        var sut = new CreateCommand<Movie>(movie, movieNodeConfig, index, nodeSetIndex, CypherBuilder);
         CypherBuilder.ToString().Trim().Should().Be("""
         CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
         MERGE (person0_1:Person { Id: $cp_0_0_3 })
@@ -128,7 +131,7 @@ public class CreateCommandTests
         sw.Start();
         foreach (var movie in movies)
         {
-            _ = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
+            _ = new CreateCommand<Movie>(movie, movieNodeConfig, index, nodeSetIndex, CypherBuilder);
         }
         sw.Stop();
         sw.ElapsedMilliseconds.Should().BeLessThan(1000);
@@ -146,7 +149,7 @@ public class CreateCommandTests
                 Id = Guid.NewGuid()
             }
         };
-        var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
+        var sut = new CreateCommand<Movie>(movie, movieNodeConfig, 0, 0, CypherBuilder);
         CypherBuilder.ToString().Trim().Should().Be("""
         CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
         MERGE (location0_1:Location { Id: $cp_0_0_3 })
@@ -182,7 +185,7 @@ public class CreateCommandTests
                 }
             ]
         };
-        var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
+        var sut = new CreateCommand<Movie>(movie, movieNodeConfig, 0, 0, CypherBuilder);
         CypherBuilder.ToString().Trim().Should().Be("""
         CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
         MERGE (equipment0_1:Equipment { Id: $cp_0_0_3, Name: $cp_0_0_4, Type: $cp_0_0_5 })
@@ -203,13 +206,15 @@ public class CreateCommandTests
     }
 
     [Fact]
-    public void Should_Create_Node_Without_Config() {
-        var equipment = new Equipment {
+    public void Should_Create_Node_Without_Config()
+    {
+        var equipment = new Equipment
+        {
             Id = Guid.NewGuid(),
             Name = "Camera Test",
             Type = Mocks.Enums.EquipmentType.Camera
         };
-        var sut = new CreateCommand<Equipment>(equipment, 0, 0, CypherBuilder);
+        var sut = new CreateCommand<Equipment>(equipment, new NodeConfiguration(), 0, 0, CypherBuilder);
         CypherBuilder.ToString().Trim().Should().Be("""
         CREATE (equipment0:Equipment { Id: $cp_0_0_0, Name: $cp_0_0_1, Type: $cp_0_0_2 })
         """);

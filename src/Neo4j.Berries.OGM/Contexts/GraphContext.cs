@@ -26,7 +26,13 @@ public abstract class GraphContext
         for (var i = 0; i < nodeSetProps.Count(); i++)
         {
             var nodeSetProp = nodeSetProps.ElementAt(i);
-            var instance = Activator.CreateInstance(nodeSetProp.PropertyType, i, Database, CypherBuilder);
+            var nodeSetType = nodeSetProp.PropertyType.GetGenericArguments().First().Name;
+            var nodeConfig = new NodeConfiguration();
+            if (Neo4jSingletonContext.Configs.TryGetValue(nodeSetType, out var _nodeConfig))
+            {
+                nodeConfig = _nodeConfig;
+            }
+            var instance = Activator.CreateInstance(nodeSetProp.PropertyType, i, nodeConfig, Database, CypherBuilder);
             nodeSetProp.SetValue(this, instance);
             NodeSets = NodeSets.Append(instance as INodeSet);
         }

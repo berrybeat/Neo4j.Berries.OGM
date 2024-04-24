@@ -65,7 +65,7 @@ internal class CreateCommand : ICommand
         var singleRelationProperties = Properties
             .Where(p => p.Value != null)
             .Where(p => NodeConfig.Relations.ContainsKey(p.Key))
-            .Where(p => 
+            .Where(p =>
                 (!Anonymous && !p.Value.GetType().IsAssignableTo(typeof(ICollection))) ||
                 (Anonymous && p.Value.GetType().IsAssignableTo(typeof(IDictionary))));
         foreach (var prop in singleRelationProperties)
@@ -131,15 +131,11 @@ internal class CreateCommand : ICommand
 
 internal class CreateCommand<TNode> : CreateCommand, ICommand
 {
-    public CreateCommand(TNode source, int itemIndex, int nodeSetIndex, StringBuilder cypherBuilder)
+    public CreateCommand(TNode source, NodeConfiguration nodeConfig, int itemIndex, int nodeSetIndex, StringBuilder cypherBuilder)
     {
         Node = source;
         Label = typeof(TNode).Name;
-        NodeConfig = new NodeConfiguration();
-        if (Neo4jSingletonContext.Configs.TryGetValue(typeof(TNode).Name, out NodeConfiguration _nodeConfig))
-        {
-            NodeConfig = _nodeConfig;
-        }
+        NodeConfig = nodeConfig;
         ItemIndex = itemIndex;
         NodeSetIndex = nodeSetIndex;
         CypherBuilder = cypherBuilder;
