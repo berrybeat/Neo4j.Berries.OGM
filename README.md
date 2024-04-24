@@ -45,7 +45,7 @@ The queries as you see are not supported with LINQ and instead you need to use t
 }
 ```
 
-* Neo4j.Url: This is the url to neo4j. For example: `http://localhost:7687`
+* Neo4j.Url: This is the url to neo4j. For example: `neo4j://localhost:7687`
 * Neo4j.Username: The username for your database
 * Neo4j.Password: The password for your database
 * Neo4j.Database: This is optional. If not passed, it will connect to the default database. If passed, it will connect to the passed database.
