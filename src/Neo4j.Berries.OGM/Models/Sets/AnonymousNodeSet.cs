@@ -1,4 +1,3 @@
-using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json;
 using Neo4j.Berries.OGM.Contexts;
@@ -30,7 +29,7 @@ public class NodeSet : INodeSet
         CreationCypherBuilder = cypherBuilder;
         Key = $"anonymousList_{NodeSetIndex}";
         Label = label;
-        UnwindVariable = $"{JsonNamingPolicy.CamelCase.ConvertName(label)}_{NodeSetIndex}";
+        UnwindVariable = $"uw_{JsonNamingPolicy.CamelCase.ConvertName(label)}_{NodeSetIndex}";
         CreateCommand = new CreateCommand(nodeSetIndex, UnwindVariable, nodeConfiguration, cypherBuilder);
     }
     public void Add(Dictionary<string, object> node)

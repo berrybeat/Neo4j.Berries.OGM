@@ -53,7 +53,7 @@ internal class CreateCommand
             )
             .ToDictionary
             (
-                x => x.Key, 
+                x => x.Key,
                 x => (
                     x.Value as IEnumerable<Dictionary<string, object>>
                 ).SelectMany(
@@ -95,11 +95,20 @@ internal class CreateCommand
             CypherBuilder.AppendLine("WITH *");
             CypherBuilder.AppendLine($"WHERE {UnwindVariable}.{key} IS NOT NULL");
             var relation = NodeConfig.Relations[key];
-            var properties = value.Distinct();
+            var groups = value.GroupBy(x => x).ToDictionary(x => x.Key, x => x.Count());
+            //Any property with the following iteration is not a nullable property
+            //Any property lower than the following iteration is a nullable property
+            var maxIteration = groups.Max(x => x.Value);
+            var notNullableProperties = groups.Where(x => x.Value == maxIteration).Select(x => x.Key);
+            var nullableProperties = groups.Where(x => x.Value < maxIteration).Select(x => x.Key);
             var nodeAlias = $"{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}";
             var endNodeLabel = relation.EndNodeType != null ? relation.EndNodeType.Name : relation.EndNodeLabel;
             CypherBuilder.AppendLine(
-                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", properties.Select(x => $"{x}: {UnwindVariable}.{key}.{x}"))} }})"
+                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", notNullableProperties.Select(x => $"{x}: {UnwindVariable}.{key}.{x}"))} }})"
+            );
+            if (nullableProperties.Any())
+                CypherBuilder.AppendLine(
+                    $"SET {string.Join(", ", nullableProperties.Select(x => $"{nodeAlias}.{x} = {UnwindVariable}.{key}.{x}"))}"
             );
             CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}){relation.Format()}({nodeAlias})");
         }
@@ -110,12 +119,21 @@ internal class CreateCommand
             CypherBuilder.AppendLine($"WHERE {UnwindVariable}.{key} IS NOT NULL");
             CypherBuilder.AppendLine($"UNWIND {UnwindVariable}.{key} AS {unwindVariable}");
             var relation = NodeConfig.Relations[key];
-            var properties = value.Distinct();
+            var groups = value.GroupBy(x => x).ToDictionary(x => x.Key, x => x.Count());
+            //Any property with the following iteration is not a nullable property
+            //Any property lower than the following iteration is a nullable property
+            var maxIteration = groups.Max(x => x.Value);
+            var notNullableProperties = groups.Where(x => x.Value == maxIteration).Select(x => x.Key);
+            var nullableProperties = groups.Where(x => x.Value < maxIteration).Select(x => x.Key);
             var nodeAlias = $"{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}";
             var endNodeLabel = relation.EndNodeType != null ? relation.EndNodeType.Name : relation.EndNodeLabel;
             CypherBuilder.AppendLine(
-                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", properties.Select(x => $"{x}: {unwindVariable}.{x}"))} }})"
+                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", notNullableProperties.Select(x => $"{x}: {unwindVariable}.{x}"))} }})"
             );
+            if (nullableProperties.Any())
+                CypherBuilder.AppendLine(
+                    $"SET {string.Join(", ", nullableProperties.Select(x => $"{nodeAlias}.{x} = {unwindVariable}.{x}"))}"
+                );
             CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}){relation.Format()}({nodeAlias})");
         }
     }

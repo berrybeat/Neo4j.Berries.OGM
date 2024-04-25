@@ -1,14 +1,11 @@
-using System.Diagnostics;
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models;
-using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Models.Config;
-using Bogus.Extensions.UnitedKingdom;
 using Neo4j.Berries.OGM.Enums;
-using System.Data.Common;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 
@@ -66,9 +63,7 @@ public class CreateCommandTests
     [Fact]
     public void Should_Take_Merge_Props_Into_Account()
     {
-
         var nodeConfig = Neo4jSingletonContext.Configs["Movie"];
-
         var sut = GetSUTInstance(nodeConfig, "movie_0");
         sut.Add(new Movie
         {
@@ -121,6 +116,96 @@ public class CreateCommandTests
         UNWIND movie_0.Actors AS uw_actors_0
         MERGE (actors_0:Person { Id: uw_actors_0.Id })
         CREATE (node_0)<-[:ACTED_IN]-(actors_0)
+        """);
+    }
+    [Fact]
+    public void Should_Add_Set_Command_For_Nullable_Properties_In_Relations()
+    {
+        var nodeConfig = new NodeConfiguration();
+        var directedRelationConfig = new RelationConfiguration("Person", "DIRECTED", RelationDirection.In);
+        var actedRelationConfig = new RelationConfiguration("Person", "ACTED_IN", RelationDirection.In);
+        nodeConfig.Relations.TryAdd("Director", directedRelationConfig);
+        nodeConfig.Relations.TryAdd("Actors", actedRelationConfig);
+        var sut = GetSUTInstance(nodeConfig, "movie_0");
+        sut.Add(new Dictionary<string, object>
+        {
+            {"Id", Guid.NewGuid()},
+            {"Name", "The Matrix"},
+            {"ReleaseDate", new DateTime(1999, 3, 31)},
+            {"Director", new Dictionary<string, object>
+            {
+                {"FirstName", "Lana"},
+                {"LastName", "Wachowski"},
+            }},
+            {"Actors", new List<Dictionary<string, object>> {
+                new () {
+                    {"Id", Guid.NewGuid()},
+                    {"FirstName", "Keanu"},
+                    {"LastName", "Reeves"},
+                    {"Age", 56}
+                },
+                new () {
+                    {"Id", Guid.NewGuid()},
+                    {"FirstName", "Carrie-Anne"},
+                    {"LastName", "Moss"},
+                }
+            }}
+        });
+        sut.GenerateCypher("Movie");
+        var cypher = CypherBuilder.ToString();
+        cypher.Trim().Should().Be("""
+        CREATE (node_0:Movie { Id: movie_0.Id, Name: movie_0.Name, ReleaseDate: movie_0.ReleaseDate })
+        WITH *
+        WHERE movie_0.Director IS NOT NULL
+        MERGE (director_0:Person { FirstName: movie_0.Director.FirstName, LastName: movie_0.Director.LastName })
+        CREATE (node_0)<-[:DIRECTED]-(director_0)
+        WITH *
+        WHERE movie_0.Actors IS NOT NULL
+        UNWIND movie_0.Actors AS uw_actors_0
+        MERGE (actors_0:Person { Id: uw_actors_0.Id, FirstName: uw_actors_0.FirstName, LastName: uw_actors_0.LastName })
+        SET actors_0.Age = uw_actors_0.Age
+        CREATE (node_0)<-[:ACTED_IN]-(actors_0)
+        """);
+    }
+    [Fact]
+    public void Should_Add_Set_Command_For_Nullable_Properties_In_Relations_SingleRelations()
+    {
+        var nodeConfig = new NodeConfiguration();
+        var directedRelationConfig = new RelationConfiguration("Person", "DIRECTED", RelationDirection.In);
+        var actedRelationConfig = new RelationConfiguration("Person", "ACTED_IN", RelationDirection.In);
+        nodeConfig.Relations.TryAdd("Director", directedRelationConfig);
+        nodeConfig.Relations.TryAdd("Actors", actedRelationConfig);
+        var sut = GetSUTInstance(nodeConfig, "movie_0");
+        sut.Add(new Dictionary<string, object>
+        {
+            {"Id", Guid.NewGuid()},
+            {"Name", "The Matrix"},
+            {"ReleaseDate", new DateTime(1999, 3, 31)},
+            {"Director", new Dictionary<string, object>
+            {
+                {"FirstName", "Lana"},
+                {"LastName", "Wachowski"},
+            }}
+        });
+        sut.Add(new Dictionary<string, object> {
+            {"Id", Guid.NewGuid()},
+            { "Name", "The Matrix Reloaded" },
+            {"Director", new Dictionary<string, object> {
+                {"FirstName", "Lana"},
+                {"LastName", "Wachowski"},
+                { "Age", 56 }
+            }}
+        });
+
+        sut.GenerateCypher("Movie");
+        var cypher = CypherBuilder.ToString();
+        cypher.Trim().Should().Be("""
+        CREATE (node_0:Movie { Id: movie_0.Id, Name: movie_0.Name, ReleaseDate: movie_0.ReleaseDate })
+        WITH *
+        WHERE movie_0.Director IS NOT NULL
+        MERGE (director_0:Person { FirstName: movie_0.Director.FirstName, LastName: movie_0.Director.LastName })
+        SET director_0.Age = movie_0.Director.Age
+        CREATE (node_0)<-[:DIRECTED]-(director_0)
         """);
     }
     private CreateCommand GetSUTInstance(NodeConfiguration nodeConfiguration, string unwindVariable)

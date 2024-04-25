@@ -30,7 +30,7 @@ where TNode : class
         CreationCypherBuilder = cypherBuilder;
         Key = $"{JsonNamingPolicy.CamelCase.ConvertName(name)}";
         //e.g. person_0
-        UnwindVariable = $"{JsonNamingPolicy.CamelCase.ConvertName(typeof(TNode).Name)}_{NodeSetIndex}";
+        UnwindVariable = $"uw_{JsonNamingPolicy.CamelCase.ConvertName(typeof(TNode).Name)}_{NodeSetIndex}";
         CreateCommand = new CreateCommand(nodeSetIndex, UnwindVariable, nodeConfig, cypherBuilder);
     }
 

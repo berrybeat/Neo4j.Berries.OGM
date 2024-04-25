@@ -194,4 +194,35 @@ public class ObjectUtilsTests
         director.Should().OnlyContain(x => x.Key == "Id");
     }
     #endregion
+    #region NormalizeValuesForNeo4j
+    [Fact]
+    public void Should_Convert_Guid_To_String()
+    {
+        var movie = new Dictionary<string, object> {
+            { "Id", Guid.NewGuid() },
+            { "Name", "The Matrix" }
+        };
+        var result = movie.NormalizeValuesForNeo4j();
+        result["Id"].Should().BeOfType(typeof(string));
+        result["Id"].Should().Be(movie["Id"].ToString());
+    }
+    [Fact]
+    public void Should_Not_Include_Null_Values_For_Props_In_Relations()
+    {
+        var movie = new Dictionary<string, object> {
+            { "Id", Guid.NewGuid() },
+            { "Name", "The Matrix" },
+            { "ReleaseDate", null },
+            { "Director", new Dictionary<string, object> {
+                { "Name", "Lana Wachowski" },
+                { "Born", 1965 },
+                { "BirthDate", null }
+            } }
+        };
+        var result = movie.NormalizeValuesForNeo4j();
+        result["ReleaseDate"].Should().BeNull();
+        var director = result["Director"] as Dictionary<string, object>;
+        director.Should().NotContainKey("BirthDate");
+    }
+    #endregion
 }
