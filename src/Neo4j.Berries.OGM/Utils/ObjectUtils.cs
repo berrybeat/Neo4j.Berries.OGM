@@ -21,6 +21,7 @@ public static class ObjectUtils
     {
         foreach (var item in input)
         {
+            if(item.Value == null) continue;
             if (item.Value.GetType().IsAssignableTo(typeof(IDictionary)))
             {
                 input[item.Key] = NormalizeValuesForNeo4j((Dictionary<string, object>)item.Value);
