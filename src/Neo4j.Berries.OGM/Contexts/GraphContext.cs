@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Sets;
@@ -32,7 +33,15 @@ public abstract class GraphContext
             {
                 nodeConfig = _nodeConfig;
             }
-            var instance = Activator.CreateInstance(nodeSetProp.PropertyType, i, nodeConfig, Database, CypherBuilder);
+            //Creating the NodeSet instance
+            var instance = Activator.CreateInstance(
+                nodeSetProp.PropertyType, //type of the nodeset
+                i, //nodeIndex
+                JsonNamingPolicy.CamelCase.ConvertName(nodeSetProp.Name), //name
+                nodeConfig, //nodeConfig will be passed in advance, to avoid searching for it everytime.
+                Database, //This is the database context and is needed for Match related methods.
+                CypherBuilder //The shared string builder, this is only used for creation.
+            );
             nodeSetProp.SetValue(this, instance);
             NodeSets = NodeSets.Append(instance as INodeSet);
         }
@@ -67,10 +76,19 @@ public abstract class GraphContext
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        List<KeyValuePair<string, object>> parameters = [];
+        Dictionary<string, object> parameters = [];
         GetCreateParameters(parameters);
-
-        await Database.RunAsync(CypherBuilder.ToString(), parameters, cancellationToken);
+        var validNodeSets = NodeSets.Where(x => x.Nodes.Any());
+        for (var i = 0; i < validNodeSets.Count(); i++)
+        {
+            if (i > 0 && i < validNodeSets.Count() - 1)
+            {
+                CypherBuilder.AppendLine("WITH *");
+            }
+            validNodeSets.ElementAt(i).BuildCypher();
+        }
+        var _parameters = parameters.ToList();
+        await Database.RunAsync(CypherBuilder.ToString(), _parameters, cancellationToken);
 
         //This will prevent the SaveChangesAsync to save multiple times accidentally.
         ResetCreateCommands();
@@ -79,9 +97,17 @@ public abstract class GraphContext
 
     public void SaveChanges()
     {
-        List<KeyValuePair<string, object>> parameters = [];
+        Dictionary<string, object> parameters = [];
         GetCreateParameters(parameters);
-
+        var validNodeSets = NodeSets.Where(x => x.Nodes.Any());
+        for (var i = 0; i < validNodeSets.Count(); i++)
+        {
+            if (i > 0 && i < validNodeSets.Count() - 1)
+            {
+                CypherBuilder.AppendLine("WITH *");
+            }
+            NodeSets.ElementAt(i).BuildCypher();
+        }
         Database.Run(CypherBuilder.ToString(), parameters);
 
         //This will prevent the SaveChangesAsync to save multiple times accidentally.
@@ -89,12 +115,11 @@ public abstract class GraphContext
         CypherBuilder.Clear();
     }
 
-    private void GetCreateParameters(List<KeyValuePair<string, object>> parameters)
+    private void GetCreateParameters(Dictionary<string, object> parameters)
     {
-        foreach (var nodeSet in NodeSets)
+        foreach (var nodeSet in NodeSets.Where(x => x.Nodes.Any()))
         {
-            var nodeSetParams = nodeSet.CreateCommands.SelectMany(createCommand => createCommand.Parameters);
-            parameters.AddRange(nodeSetParams);
+            parameters[nodeSet.Key] = nodeSet.Nodes;
         }
     }
     private void ResetCreateCommands()

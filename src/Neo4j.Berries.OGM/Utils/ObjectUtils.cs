@@ -1,5 +1,5 @@
-using System.Collections;
 using System.Reflection;
+using System.Collections;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
 
@@ -16,9 +16,11 @@ public static class ObjectUtils
         }
         return input;
     }
-    public static Dictionary<string, object> ToDictionary(this object node, Dictionary<string, NodeConfiguration> config, IEnumerable<string> mergeProperties = null)
+    public static Dictionary<string, object> ToDictionary(this object node, Dictionary<string, NodeConfiguration> config, IEnumerable<string> mergeProperties = null, int iterations = 0)
     {
-        mergeProperties = mergeProperties ?? [];
+        if (iterations > 1) 
+            return null;
+        mergeProperties ??= [];
         var nodeConfig = new NodeConfiguration();
         if (config.TryGetValue(node.GetType().Name, out NodeConfiguration _nodeConfig))
         {
@@ -34,13 +36,18 @@ public static class ObjectUtils
                 var list = ((IEnumerable)value).Cast<object>().ToList();
                 if (!nodeConfig.Relations.TryGetValue(prop.Name, out relation))
                     continue;
-                obj[prop.Name] = list == null || list.Count == 0
-                ? null : list.Select(x => x.ToDictionary(config, relation?.EndNodeMergeProperties));
+                var parsedList = list == null || list.Count == 0 ? null :
+                    list
+                        .Select(
+                            x => x.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1)
+                        )
+                            .Where(x => x != null);
+                obj[prop.Name] = parsedList?.Any() == false ? null : parsedList;
                 continue;
             }
             if (nodeConfig.Relations.TryGetValue(prop.Name, out relation))
             {
-                obj[prop.Name] = value?.ToDictionary(config, relation?.EndNodeMergeProperties);
+                obj[prop.Name] = value?.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1);
                 continue;
             }
             if (
@@ -49,7 +56,7 @@ public static class ObjectUtils
                     ((!nodeConfig.ExcludedProperties.Contains(prop.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
                     (nodeConfig.IncludedProperties.Contains(prop.Name) && !nodeConfig.IncludedProperties.IsEmpty)))
                 )
-                obj[prop.Name] = value;
+                obj[prop.Name] = value.ToNeo4jValue();
             else if (!mergeProperties.Any() && nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)
             {
                 if (value is DateTime)
@@ -58,7 +65,7 @@ public static class ObjectUtils
                     if (parsedValue == DateTime.MinValue) continue;
                 }
                 if (value != default)
-                    obj[prop.Name] = value;
+                    obj[prop.Name] = value.ToNeo4jValue();
             }
         }
         return obj;

@@ -19,7 +19,7 @@ public class ObjectUtilsTests
         };
         var result = movie.ToDictionary([]);
         result.Should().HaveCount(2);
-        result["Id"].Should().Be(movie.Id);
+        result["Id"].Should().Be(movie.Id.ToString());
         result["Name"].Should().Be(movie.Name);
     }
 
@@ -45,7 +45,7 @@ public class ObjectUtilsTests
         var result = movie.ToDictionary(config);
         result["ReleaseDate"].Should().Be(movie.ReleaseDate);
         var directorDictionary = result["Director"] as Dictionary<string, object>;
-        directorDictionary["Id"].Should().Be(movie.Director.Id);
+        directorDictionary["Id"].Should().Be(movie.Director.Id.ToString());
         directorDictionary["FirstName"].Should().Be(movie.Director.FirstName);
         directorDictionary["LastName"].Should().Be(movie.Director.LastName);
     }
@@ -82,16 +82,16 @@ public class ObjectUtilsTests
         var result = movie.ToDictionary(config);
         var actors = result["Actors"] as IEnumerable<Dictionary<string, object>>;
         actors.Should().HaveCount(2);
-        actors.First()["Id"].Should().Be(movie.Actors.First().Id);
+        actors.First()["Id"].Should().Be(movie.Actors.First().Id.ToString());
         actors.First()["FirstName"].Should().Be(movie.Actors.First().FirstName);
         actors.First()["LastName"].Should().Be(movie.Actors.First().LastName);
 
-        actors.Last()["Id"].Should().Be(movie.Actors.Last().Id);
+        actors.Last()["Id"].Should().Be(movie.Actors.Last().Id.ToString());
         actors.Last()["FirstName"].Should().Be(movie.Actors.Last().FirstName);
         actors.Last()["LastName"].Should().Be(movie.Actors.Last().LastName);
     }
     [Fact]
-    public void Should_Add_Nested_Lists()
+    public void Should_Only_Iterate_One_Time()
     {
         var movie = new Movie
         {
@@ -133,15 +133,11 @@ public class ObjectUtilsTests
             );
         var result = movie.ToDictionary(config);
         var director = result["Director"] as Dictionary<string, object>;
-        director["Id"].Should().Be(movie.Director.Id);
+        director["Id"].Should().Be(movie.Director.Id.ToString());
         director["FirstName"].Should().Be(movie.Director.FirstName);
         director["LastName"].Should().Be(movie.Director.LastName);
-        var moviesAsActor = director["MoviesAsActor"] as IEnumerable<Dictionary<string, object>>;
-        moviesAsActor.Should().HaveCount(2);
-        moviesAsActor.First()["Id"].Should().Be(movie.Director.MoviesAsActor.First().Id);
-        moviesAsActor.First()["Name"].Should().Be(movie.Director.MoviesAsActor.First().Name);
-        moviesAsActor.Last()["Id"].Should().Be(movie.Director.MoviesAsActor.Last().Id);
-        moviesAsActor.Last()["Name"].Should().Be(movie.Director.MoviesAsActor.Last().Name);
+        var moviesAsActor = director["MoviesAsActor"];
+        moviesAsActor.Should().BeNull();
     }
     [Fact]
     public void Should_Exclude_Properties()
@@ -163,13 +159,14 @@ public class ObjectUtilsTests
         };
         config["Movie"].ExcludedProperties.Add("ReleaseDate");
         var result = movie.ToDictionary(config);
-        result["Id"].Should().Be(movie.Id);
+        result["Id"].Should().Be(movie.Id.ToString());
         result["Name"].Should().Be(movie.Name);
         result.Should().ContainKey("Director");
         result.Should().NotContainKey("ReleaseDate");
     }
     [Fact]
-    public void Should_Only_Include_Merge_Properties() {
+    public void Should_Only_Include_Merge_Properties()
+    {
         var movie = new Movie
         {
             Id = Guid.NewGuid(),

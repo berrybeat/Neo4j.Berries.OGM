@@ -199,7 +199,7 @@ public class GraphContextTests : TestBase
         TestGraphContext
             .NodeSets
             .Should()
-            .AllSatisfy(x => x.CreateCommands.Should().BeEmpty());
+            .AllSatisfy(x => x.Nodes.Should().BeEmpty());
     }
 
     [Fact]
