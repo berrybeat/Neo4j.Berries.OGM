@@ -5,6 +5,7 @@ using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Queries;
+using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Models.Sets;
 
@@ -39,7 +40,7 @@ public class NodeSet : INodeSet
             //e.g. UNWIND $people as person_0
             CreationCypherBuilder.AppendLine($"UNWIND ${Key} as {UnwindVariable}");
         }
-        Nodes = Nodes.Append(node);
+        Nodes = Nodes.Append(node.NormalizeValuesForNeo4j());
         CreateCommand.Add(node);
     }
     public void AddRange(IEnumerable<Dictionary<string, object>> nodes)

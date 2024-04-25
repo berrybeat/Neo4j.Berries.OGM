@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Collections;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Neo4j.Berries.OGM.Utils;
 
@@ -16,9 +17,27 @@ public static class ObjectUtils
         }
         return input;
     }
+    public static Dictionary<string, object> NormalizeValuesForNeo4j(this Dictionary<string, object> input)
+    {
+        foreach (var item in input)
+        {
+            if (item.Value.GetType().IsAssignableTo(typeof(IDictionary)))
+            {
+                input[item.Key] = NormalizeValuesForNeo4j((Dictionary<string, object>)item.Value);
+                continue;
+            }
+            else if (item.Value.GetType().IsGenericType)
+            {
+                input[item.Key] = ((IEnumerable)item.Value).Cast<Dictionary<string, object>>().Select(NormalizeValuesForNeo4j);
+                continue;
+            }
+            input[item.Key] = item.Value.ToNeo4jValue();
+        }
+        return input;
+    }
     public static Dictionary<string, object> ToDictionary(this object node, Dictionary<string, NodeConfiguration> config, IEnumerable<string> mergeProperties = null, int iterations = 0)
     {
-        if (iterations > 1) 
+        if (iterations > 1)
             return null;
         mergeProperties ??= [];
         var nodeConfig = new NodeConfiguration();
