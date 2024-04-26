@@ -106,7 +106,7 @@ public abstract class GraphContext
             {
                 CypherBuilder.AppendLine("WITH *");
             }
-            NodeSets.ElementAt(i).BuildCypher();
+            validNodeSets.ElementAt(i).BuildCypher();
         }
         Database.Run(CypherBuilder.ToString(), parameters);
 

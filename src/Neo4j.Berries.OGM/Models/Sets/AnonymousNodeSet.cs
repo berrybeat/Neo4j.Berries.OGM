@@ -74,6 +74,7 @@ public class NodeSet : INodeSet
     public void Reset()
     {
         Nodes = [];
+        CreateCommand.Reset();
     }
     public void BuildCypher()
     {

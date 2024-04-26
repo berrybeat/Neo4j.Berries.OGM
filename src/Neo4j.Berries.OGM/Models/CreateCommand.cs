@@ -151,4 +151,11 @@ internal class CreateCommand
         }
     }
     #endregion
+
+    public void Reset()
+    {
+        Properties.Clear();
+        SingleRelations.Clear();
+        MultipleRelations.Clear();
+    }
 }

@@ -13,7 +13,7 @@ where TNode : class
 {
     #region Constructor parameters
     internal StringBuilder CreationCypherBuilder { get; }
-    internal CreateCommand CreateCommand { get; }
+    internal CreateCommand CreateCommand { get; private set; }
     public DatabaseContext DatabaseContext { get; }
     public NodeConfiguration NodeConfig { get; }
     public string Key { get; }
@@ -44,8 +44,9 @@ where TNode : class
             //e.g. UNWIND $people as person_0
             CreationCypherBuilder.AppendLine($"UNWIND ${Key} as {UnwindVariable}");
         }
-        Nodes = Nodes.Append(node.ToDictionary(Neo4jSingletonContext.Configs));
-        CreateCommand.Add(node);
+        var _node = node.ToDictionary(Neo4jSingletonContext.Configs);
+        Nodes = Nodes.Append(_node);
+        CreateCommand.Add(_node);
     }
     /// <summary>
     /// Adds a range of nodes to the set. Only after calling the `SaveChangesAsync` the added objects will be transferred to the database.
@@ -77,6 +78,7 @@ where TNode : class
     public void Reset()
     {
         Nodes = [];
+        CreateCommand.Reset();
     }
 
     public void BuildCypher()

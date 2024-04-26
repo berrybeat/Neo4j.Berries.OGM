@@ -73,8 +73,7 @@ public static class ObjectUtils
                     list
                         .Select(
                             x => x.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1)
-                        )
-                            .Where(x => x != null);
+                        ).Where(x => x != null);
                 obj[prop.Name] = parsedList?.Any() == false ? null : parsedList;
                 continue;
             }

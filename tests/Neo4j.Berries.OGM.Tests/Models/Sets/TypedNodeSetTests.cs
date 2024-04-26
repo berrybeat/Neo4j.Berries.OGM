@@ -33,4 +33,21 @@ public class TypedNodeSetTests
         MovieNodeSet.AddRange(movies);
         CypherBuilder.ToString().Trim().Should().Be("UNWIND $movies as uw_movie_0");
     }
+
+    [Fact]
+    public void Should_Reset_NodeSet()
+    {
+        var movies = new List<Movie> {
+            new () { Name = "The Matrix", ReleaseDate = new DateTime(1999, 3, 31) },
+            new () { Name = "The Matrix Reloaded", ReleaseDate = new DateTime(2003, 5, 15) }
+        };
+        MovieNodeSet.AddRange(movies);
+
+        MovieNodeSet.Reset();
+
+        MovieNodeSet.Nodes.Should().BeEmpty();
+        MovieNodeSet.CreateCommand.Properties.Should().BeEmpty();
+        MovieNodeSet.CreateCommand.SingleRelations.Should().BeEmpty();
+        MovieNodeSet.CreateCommand.MultipleRelations.Should().BeEmpty();
+    }
 }

@@ -53,6 +53,29 @@ public class GraphContextTests : TestBase
     }
 
     [Fact]
+    //A node set is a valid one to save, when something is added to it.
+    public void Should_Only_Save_Valid_NodeSets()
+    {
+        var person = new Person
+        {
+            Id = Guid.NewGuid(),
+            FirstName = "John",
+            LastName = "Doe",
+            Age = 32,
+        };
+        TestGraphContext.People.Add(person);
+        TestGraphContext.SaveChanges();
+
+        var personRecord = TestGraphContext.People.Match(x => x.Where(y => y.Id, person.Id)).FirstOrDefault();
+        personRecord.Should().NotBeNull();
+        personRecord.Id.Should().Be(person.Id);
+        personRecord.FirstName.Should().Be(person.FirstName);
+        personRecord.LastName.Should().Be(person.LastName);
+        personRecord.Age.Should().Be(person.Age);
+
+    }
+
+    [Fact]
     public async void SaveChanges_Creates_A_Collection()
     {
         var movies = new List<Movie>() {
