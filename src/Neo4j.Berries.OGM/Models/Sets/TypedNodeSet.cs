@@ -1,34 +1,59 @@
 using System.Text;
+using System.Text.Json;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Queries;
+using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Models.Sets;
 
-public class NodeSet<TNode>(int nodeSetIndex, DatabaseContext databaseContext, StringBuilder cypherBuilder) : INodeSet
+public class NodeSet<TNode> : INodeSet
 where TNode : class
 {
-    private readonly int _nodeSetIndex = nodeSetIndex;
-    public DatabaseContext InternalDatabaseContext { get; } = databaseContext;
-    internal StringBuilder CreationCypherBuilder { get; } = cypherBuilder;
-    public IList<ICommand> CreateCommands { get; private set; } = [];
+    #region Constructor parameters
+    internal StringBuilder CreationCypherBuilder { get; }
+    internal CreateCommand CreateCommand { get; private set; }
+    public DatabaseContext DatabaseContext { get; }
+    public NodeConfiguration NodeConfig { get; }
+    public string Key { get; }
+    private string UnwindVariable { get; }
+    private int NodeSetIndex { get; }
+    #endregion
+    public IEnumerable<object> Nodes { get; private set; } = [];
+
+    public NodeSet(int nodeSetIndex, string name, NodeConfiguration nodeConfig, DatabaseContext databaseContext, StringBuilder cypherBuilder)
+    {
+        NodeSetIndex = nodeSetIndex;
+        NodeConfig = nodeConfig;
+        DatabaseContext = databaseContext;
+        CreationCypherBuilder = cypherBuilder;
+        Key = $"{JsonNamingPolicy.CamelCase.ConvertName(name)}";
+        //e.g. person_0
+        UnwindVariable = $"uw_{JsonNamingPolicy.CamelCase.ConvertName(typeof(TNode).Name)}_{NodeSetIndex}";
+        CreateCommand = new CreateCommand(nodeSetIndex, UnwindVariable, nodeConfig, cypherBuilder);
+    }
 
     /// <summary>
     /// Adds a node to the set. Only after calling the `SaveChangesAsync` the added objects will be transferred to the database.
     /// </summary>
-    public TNode Add(TNode node)
+    public void Add(TNode node)
     {
-        CreateCommands.Add(new CreateCommand<TNode>(node, CreateCommands.Count, _nodeSetIndex, CreationCypherBuilder));
-        return node;
+        if (!Nodes.Any())
+        {
+            //e.g. UNWIND $people as person_0
+            CreationCypherBuilder.AppendLine($"UNWIND ${Key} as {UnwindVariable}");
+        }
+        var _node = node.ToDictionary(Neo4jSingletonContext.Configs);
+        Nodes = Nodes.Append(_node);
+        CreateCommand.Add(_node);
     }
     /// <summary>
     /// Adds a range of nodes to the set. Only after calling the `SaveChangesAsync` the added objects will be transferred to the database.
     /// </summary>
     public void AddRange(IEnumerable<TNode> nodes)
     {
-        (CreateCommands as List<ICommand>).AddRange(
-            nodes.Select((node, index) => new CreateCommand<TNode>(node, CreateCommands.Count, _nodeSetIndex, CreationCypherBuilder))
-        );
+        foreach (var node in nodes) Add(node);
     }
     /// <summary>
     /// Starts a query to find nodes in the database and execute Update, Connect, Disconnect on the found relations/nodes.
@@ -36,7 +61,7 @@ where TNode : class
     /// <param name="eloquent">The eloquent query to find nodes in the database</param>
     public NodeQuery<TNode> Match(Func<Eloquent<TNode>, Eloquent<TNode>> eloquent)
     {
-        var query = new NodeQuery<TNode>(eloquent(new Eloquent<TNode>(0)), InternalDatabaseContext);
+        var query = new NodeQuery<TNode>(eloquent(new Eloquent<TNode>(0)), DatabaseContext);
         return query;
     }
     /// <summary>
@@ -44,7 +69,7 @@ where TNode : class
     /// </summary>
     public NodeQuery<TNode> Match()
     {
-        var query = new NodeQuery<TNode>(null, InternalDatabaseContext);
+        var query = new NodeQuery<TNode>(null, DatabaseContext);
         return query;
     }
     /// <summary>
@@ -52,6 +77,12 @@ where TNode : class
     /// </summary>
     public void Reset()
     {
-        CreateCommands = [];
+        Nodes = [];
+        CreateCommand.Reset();
+    }
+
+    public void BuildCypher()
+    {
+        CreateCommand.GenerateCypher(typeof(TNode).Name);
     }
 }

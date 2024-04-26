@@ -1,151 +1,161 @@
 using System.Collections;
 using System.Data;
-using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Neo4j.Berries.OGM.Contexts;
-using Neo4j.Berries.OGM.Enums;
-using Neo4j.Berries.OGM.Helpers;
-using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Models;
 
 
-internal class CreateCommand : ICommand
+//Important: CreateCommand is unique per NodeSet
+internal class CreateCommand
 {
     #region Constructor parameters
-    protected object Node { get; set; }
-    protected string Label { get; set; }
-    protected NodeConfiguration NodeConfig { get; set; }
-    protected int ItemIndex { get; set; }
-    protected int NodeSetIndex { get; set; }
-    protected StringBuilder CypherBuilder { get; set; }
-    protected bool Anonymous { get; set; }
+    private int NodeSetIndex { get; }
+    private string UnwindVariable { get; }
+    private NodeConfiguration NodeConfig { get; }
+    private StringBuilder CypherBuilder { get; }
+    #endregion
+    public List<string> Properties { get; set; } = [];
+    public Dictionary<string, List<string>> SingleRelations { get; private set; } = [];
+    public Dictionary<string, List<string>> MultipleRelations { get; private set; } = [];
+    protected CreateCommand() { }
+    public CreateCommand(int nodeSetIndex, string unwindVariable, NodeConfiguration nodeConfig, StringBuilder cypherBuilder)
+    {
+        NodeSetIndex = nodeSetIndex;
+        UnwindVariable = unwindVariable;
+        NodeConfig = nodeConfig;
+        CypherBuilder = cypherBuilder;
+    }
+    public void Add<TNode>(TNode node)
+    {
+        Dictionary<string, object> obj = node.ToDictionary(Neo4jSingletonContext.Configs);
+        Add(obj);
+    }
+    public void Add(Dictionary<string, object> node)
+    {
+        AppendProperties(node);
+
+        var relations = node.Where(x => NodeConfig.Relations.ContainsKey(x.Key)).Where(x => x.Value != null);
+        AppendSingleRelations(relations);
+        AppendMultipleRelations(relations);
+    }
+    public void GenerateCypher(string label)
+    {
+        var rootNodeAlias = ModifyRootCypher(rootNodeLabel: label);
+        ModifyRelationCypher(isMultiple: false, rootNodeAlias: rootNodeAlias);
+        ModifyRelationCypher(isMultiple: true, rootNodeAlias: rootNodeAlias);
+    }
+
+    #region Relations dictionaries preparation
+    private void AppendProperties(Dictionary<string, object> node)
+    {
+        var props = node.Where(x => !NodeConfig.Relations.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+        Properties.AddRange(props.Keys);
+    }
+    private void AppendSingleRelations(IEnumerable<KeyValuePair<string, object>> relations)
+    {
+        var singleRelations = relations
+            .Where(
+                x => x.Value?.IsDictionary() == true
+            )
+            .ToDictionary(
+                x => x.Key, x => (x.Value as Dictionary<string, object>)
+                    .Where(y => y.Value != null)
+                    .Select(y => y.Key)
+            );
+        AppendRelations(singleRelations, SingleRelations);
+    }
+    private void AppendMultipleRelations(IEnumerable<KeyValuePair<string, object>> relations)
+    {
+        var multipleRelations = relations
+            .Where(
+                x => x.Value?.IsDictionary() == false
+            )
+            .ToDictionary
+            (
+                x => x.Key,
+                x => (
+                    x.Value as IEnumerable<Dictionary<string, object>>
+                ).SelectMany(
+                    y => y
+                ).Where(y => y.Value != null)
+                .Select(x => x.Key)
+            );
+        AppendRelations(multipleRelations, MultipleRelations);
+    }
+
+    private static void AppendRelations(Dictionary<string, IEnumerable<string>> from, Dictionary<string, List<string>> to)
+    {
+        foreach (var item in from)
+        {
+            if (to.TryGetValue(item.Key, out List<string> value))
+            {
+                value.AddRange(item.Value);
+            }
+            else
+            {
+                to.Add(item.Key, item.Value.ToList());
+            }
+        }
+    }
     #endregion
 
-    private int CypherLines { get; set; }
-    private Dictionary<string, object> Properties => Node is Dictionary<string, object> ? Node as Dictionary<string, object> : Node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance).ToDictionary(p => p.Name, p => p.GetValue(Node));
-    private string Alias => Anonymous ? $"a_{NodeSetIndex}_{ItemIndex}" : $"{Label.ToLower()}{ItemIndex}";
-    public Dictionary<string, object> Parameters { get; set; } = [];
-    public string CurrentParameterName => $"$cp_{NodeSetIndex}_{ItemIndex}_{Parameters.Count}";
-    public string ParameterFormat => $"$cp_{NodeSetIndex}_{ItemIndex}_{{0}}";
-    protected CreateCommand() { }
-    public CreateCommand(object node, string label, NodeConfiguration nodeConfig, int itemIndex, int nodeSetIndex, StringBuilder cypherBuilder, bool anonymous)
+    #region Cypher builder helpers
+    //This modifies the first line which is CREATE ... 
+    private string ModifyRootCypher(string rootNodeLabel)
     {
-        Node = node;
-        Label = label;
-        NodeConfig = nodeConfig;
-        ItemIndex = itemIndex;
-        NodeSetIndex = nodeSetIndex;
-        CypherBuilder = cypherBuilder;
-        Anonymous = anonymous;
-        AddCreateNodeCypher();
-        AddSingleRelationsCyphers();
-        AddRelationCollectionCypher();
+        var properties = Properties.Distinct();
+        var rootNodeAlias = $"node_{NodeSetIndex}";
+        CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}:{rootNodeLabel} {{ {string.Join(", ", properties.Select(x => $"{x}: {UnwindVariable}.{x}"))} }})");
+        return rootNodeAlias;
     }
+    private void ModifyRelationCypher(bool isMultiple, string rootNodeAlias)
+    {
+        var relations = isMultiple ? MultipleRelations : SingleRelations;
+        foreach (var (key, value) in relations)
+        {
+            CypherBuilder.AppendLine("WITH *");
+            //Here, regardless of multiple relations or single, it should check if for example person.Companies exists
+            CypherBuilder.AppendLine($"WHERE {UnwindVariable}.{key} IS NOT NULL");
 
-    protected void AddCreateNodeCypher()
-    {
-        var propertiesHelper = new PropertiesHelper(Node);
-        var validProperties = propertiesHelper.GetValidProperties(NodeConfig);
-        PropertiesHelper
-            .AddNormalizedParameters(
-                validProperties,
-                Parameters,
-                ParameterFormat,
-                out var safeKeyValueParameters);
-        var safeParameters = BuildSafeParameters(safeKeyValueParameters);
+            var unwindVariable = isMultiple ? $"uw_{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}" : UnwindVariable;
+            if (isMultiple)
+                CypherBuilder.AppendLine($"UNWIND {UnwindVariable}.{key} AS {unwindVariable}");
 
-        CypherBuilder.AppendLine($"CREATE ({Alias}:{Label} {{ {string.Join(", ", safeParameters)} }})");
-        CypherLines++;
-    }
+            var relation = NodeConfig.Relations[key];
 
-    protected void AddSingleRelationsCyphers()
-    {
-        var singleRelationProperties = Properties
-            .Where(p => p.Value != null)
-            .Where(p => NodeConfig.Relations.ContainsKey(p.Key))
-            .Where(p => 
-                (!Anonymous && !p.Value.GetType().IsAssignableTo(typeof(ICollection)) &&
-                !p.Value.GetType().IsGenericType) ||
-                Anonymous && p.Value.GetType().IsAssignableTo(typeof(IDictionary)));
-        foreach (var prop in singleRelationProperties)
-        {
-            var targetNodeConfig = new NodeConfiguration();
-            if (Neo4jSingletonContext.Configs.TryGetValue(prop.Key, out NodeConfiguration _targetNodeConfig))
-            {
-                targetNodeConfig = _targetNodeConfig;
-            }
-            var relation = NodeConfig.Relations[prop.Key];
-            MergeRelation(prop.Value, targetNodeConfig, relation);
-        }
-    }
-    protected void AddRelationCollectionCypher()
-    {
-        var collectionRelationProperties = Properties
-            .Where(p => p.Value != null)
-            .Where(p => NodeConfig.Relations.ContainsKey(p.Key))
-            .Where(p => p.Value.GetType().IsAssignableTo(typeof(ICollection)))
-            .Where(p => !p.Value.GetType().IsAssignableTo(typeof(IDictionary)))
-            .Where(p => (p.Value as ICollection).Count > 0);
-        foreach (var prop in collectionRelationProperties)
-        {
-            var collection = prop.Value as ICollection;
-            var firstItem = collection.OfType<object>().First();
-            var targetNodeConfig = new NodeConfiguration();
-            if (Neo4jSingletonContext.Configs.TryGetValue(prop.Key, out NodeConfiguration _targetNodeConfig))
-            {
-                targetNodeConfig = _targetNodeConfig;
-            }
-            var relation = NodeConfig.Relations[prop.Key];
-            foreach (var item in collection)
-            {
-                MergeRelation(item, targetNodeConfig, relation);
-            }
-        }
-    }
-    private void MergeRelation(object source, NodeConfiguration nodeConfig, IRelationConfiguration relation)
-    {
-        var propertiesHelper = new PropertiesHelper(source);
-        var validProperties = propertiesHelper.GetValidProperties(nodeConfig, relation);
-        PropertiesHelper.AddNormalizedParameters(validProperties, Parameters, ParameterFormat, out var safeKeyValueParameters);
-        var endNodeLabel = string.IsNullOrEmpty(relation.EndNodeLabel) ? relation.EndNodeType.Name : relation.EndNodeLabel;
-        var endNodeAlias = $"{endNodeLabel.ToLower()}{ItemIndex}_{CypherLines}";
-        var safeParameters = BuildSafeParameters(safeKeyValueParameters);
-        CypherBuilder.AppendLine($"MERGE ({endNodeAlias}:{endNodeLabel} {{ {string.Join(", ", safeParameters)} }})");
-        if (relation.Direction == RelationDirection.In)
-        {
-            CypherBuilder.AppendLine($"CREATE ({Alias})<-[:{relation.Label}]-({endNodeAlias})");
-        }
-        else
-        {
-            CypherBuilder.AppendLine($"CREATE ({Alias})-[:{relation.Label}]->({endNodeAlias})");
-        }
-        CypherLines += 2;
-    }
-    private static IEnumerable<string> BuildSafeParameters(Dictionary<string, string> safeKeyValueParameters)
-    {
-        return safeKeyValueParameters.Select(x => $"{x.Key}: {x.Value}");
-    }
-}
+            //Grouping the properties by their iteration
+            var groups = value
+                .GroupBy(x => x)
+                .ToDictionary(x => x.Key, x => x.Count());
+            //Any property with the following iteration is not a nullable property
+            //Any property lower than the following iteration is a nullable property
+            var maxIteration = groups.Max(x => x.Value);
+            var notNullableProperties = groups.Where(x => x.Value == maxIteration).Select(x => x.Key);
+            var nullableProperties = groups.Where(x => x.Value < maxIteration).Select(x => x.Key);
 
-internal class CreateCommand<TNode> : CreateCommand, ICommand
-{
-    public CreateCommand(TNode source, int itemIndex, int nodeSetIndex, StringBuilder cypherBuilder)
-    {
-        Node = source;
-        Label = typeof(TNode).Name;
-        NodeConfig = new NodeConfiguration();
-        if (Neo4jSingletonContext.Configs.TryGetValue(typeof(TNode).Name, out NodeConfiguration _nodeConfig))
-        {
-            NodeConfig = _nodeConfig;
+            var nodeAlias = $"{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}";
+            var endNodeLabel = relation.EndNodeType != null ? relation.EndNodeType.Name : relation.EndNodeLabel;
+            var objectPropertyPath = isMultiple ? unwindVariable : $"{unwindVariable}.{key}";
+            CypherBuilder.AppendLine(
+                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", notNullableProperties.Select(x => $"{x}: {objectPropertyPath}.{x}"))} }})"
+            );
+            if (nullableProperties.Any())
+                CypherBuilder.AppendLine(
+                    $"SET {string.Join(", ", nullableProperties.Select(x => $"{nodeAlias}.{x} = {objectPropertyPath}.{x}"))}"
+                );
+            CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}){relation.Format()}({nodeAlias})");
         }
-        ItemIndex = itemIndex;
-        NodeSetIndex = nodeSetIndex;
-        CypherBuilder = cypherBuilder;
-        Anonymous = false;
-        AddCreateNodeCypher();
-        AddSingleRelationsCyphers();
-        AddRelationCollectionCypher();
+    }
+    #endregion
+
+    public void Reset()
+    {
+        Properties.Clear();
+        SingleRelations.Clear();
+        MultipleRelations.Clear();
     }
 }

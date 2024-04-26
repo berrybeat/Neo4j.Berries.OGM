@@ -41,16 +41,4 @@ internal class PropertiesHelper(object source)
             ).Where(p => p.Value != null)
             .ToDictionary(p => p.Key, p => p.Value);
     }
-
-    public static void AddNormalizedParameters(Dictionary<string, object> validProperties, Dictionary<string, object> parameters, string parameterNameFormat, out Dictionary<string, string> safeKeyValueParameters)
-    {
-        safeKeyValueParameters = [];
-        foreach (var prop in validProperties)
-        {
-            var parameterName = string.Format(parameterNameFormat, parameters.Count);
-            parameters.Add(parameterName.Replace("$", ""), prop.Value.ToNeo4jValue());
-            safeKeyValueParameters.Add(prop.Key, parameterName);
-        }
-    }
-
 }

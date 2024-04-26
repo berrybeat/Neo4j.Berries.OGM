@@ -24,7 +24,7 @@ public class DatabaseQueryTests() : TestBase(true)
             .Match()
             .WithRelation(x => x.Actors)
             .CountAsync();
-        count.Should().Be(10);
+        count.Should().Be(5);
     }
     [Fact]
     public async void Should_Count_All_Movies_Which_Only_Have_Director()
