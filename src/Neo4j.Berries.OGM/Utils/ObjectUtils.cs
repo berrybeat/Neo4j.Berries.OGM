@@ -16,6 +16,10 @@ public static class ObjectUtils
         }
         return input;
     }
+    internal static bool IsDictionary(this object input)
+    {
+        return input.GetType().IsAssignableTo(typeof(IDictionary));
+    }
     internal static Dictionary<string, object> NormalizeValuesForNeo4j(this Dictionary<string, object> input, bool nested = false)
     {
         foreach (var item in input)

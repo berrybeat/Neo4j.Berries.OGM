@@ -2,7 +2,6 @@ using System.Collections;
 using System.Data;
 using System.Text;
 using System.Text.Json;
-using Microsoft.VisualBasic;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
@@ -37,19 +36,43 @@ internal class CreateCommand
     }
     public void Add(Dictionary<string, object> node)
     {
+        AppendProperties(node);
+
+        var relations = node.Where(x => NodeConfig.Relations.ContainsKey(x.Key)).Where(x => x.Value != null);
+        AppendSingleRelations(relations);
+        AppendMultipleRelations(relations);
+    }
+    public void GenerateCypher(string label)
+    {
+        var rootNodeAlias = ModifyRootCypher(rootNodeLabel: label);
+        ModifyRelationCypher(isMultiple: false, rootNodeAlias: rootNodeAlias);
+        ModifyRelationCypher(isMultiple: true, rootNodeAlias: rootNodeAlias);
+    }
+
+    #region Relations dictionaries preparation
+    private void AppendProperties(Dictionary<string, object> node)
+    {
         var props = node.Where(x => !NodeConfig.Relations.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
         Properties.AddRange(props.Keys);
-        var relations = node.Where(x => NodeConfig.Relations.ContainsKey(x.Key)).Where(x => x.Value != null);
+    }
+    private void AppendSingleRelations(IEnumerable<KeyValuePair<string, object>> relations)
+    {
         var singleRelations = relations
             .Where(
-                x => x.Value?.GetType().IsAssignableTo(typeof(IDictionary)) == true
+                x => x.Value?.IsDictionary() == true
             )
             .ToDictionary(
-                x => x.Key, x => (x.Value as Dictionary<string, object>).Where(y => y.Value != null).Select(y => y.Key).ToList()
+                x => x.Key, x => (x.Value as Dictionary<string, object>)
+                    .Where(y => y.Value != null)
+                    .Select(y => y.Key)
             );
+        AppendRelations(singleRelations, SingleRelations);
+    }
+    private void AppendMultipleRelations(IEnumerable<KeyValuePair<string, object>> relations)
+    {
         var multipleRelations = relations
             .Where(
-                x => x.Value?.GetType().IsAssignableTo(typeof(IDictionary)) == false
+                x => x.Value?.IsDictionary() == false
             )
             .ToDictionary
             (
@@ -60,81 +83,72 @@ internal class CreateCommand
                     y => y
                 ).Where(y => y.Value != null)
                 .Select(x => x.Key)
-                .ToList()
             );
-        foreach (var item in singleRelations)
+        AppendRelations(multipleRelations, MultipleRelations);
+    }
+
+    private static void AppendRelations(Dictionary<string, IEnumerable<string>> from, Dictionary<string, List<string>> to)
+    {
+        foreach (var item in from)
         {
-            if (SingleRelations.TryGetValue(item.Key, out List<string> value))
+            if (to.TryGetValue(item.Key, out List<string> value))
             {
                 value.AddRange(item.Value);
             }
             else
             {
-                SingleRelations.Add(item.Key, item.Value);
-            }
-        }
-        foreach (var item in multipleRelations)
-        {
-            if (MultipleRelations.TryGetValue(item.Key, out List<string> value))
-            {
-                value.AddRange(item.Value);
-            }
-            else
-            {
-                MultipleRelations.Add(item.Key, item.Value);
+                to.Add(item.Key, item.Value.ToList());
             }
         }
     }
-    public void GenerateCypher(string label)
+    #endregion
+
+    #region Cypher builder helpers
+    //This modifies the first line which is CREATE ... 
+    private string ModifyRootCypher(string rootNodeLabel)
     {
-        Properties = Properties.Distinct().ToList();
+        var properties = Properties.Distinct();
         var rootNodeAlias = $"node_{NodeSetIndex}";
-        CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}:{label} {{ {string.Join(", ", Properties.Select(x => $"{x}: {UnwindVariable}.{x}"))} }})");
-        foreach (var (key, value) in SingleRelations)
+        CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}:{rootNodeLabel} {{ {string.Join(", ", properties.Select(x => $"{x}: {UnwindVariable}.{x}"))} }})");
+        return rootNodeAlias;
+    }
+    private void ModifyRelationCypher(bool isMultiple, string rootNodeAlias)
+    {
+        var relations = isMultiple ? MultipleRelations : SingleRelations;
+        foreach (var (key, value) in relations)
         {
             CypherBuilder.AppendLine("WITH *");
+            //Here, regardless of multiple relations or single, it should check if for example person.Companies exists
             CypherBuilder.AppendLine($"WHERE {UnwindVariable}.{key} IS NOT NULL");
+
+            var unwindVariable = isMultiple ? $"uw_{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}" : UnwindVariable;
+            if (isMultiple)
+                CypherBuilder.AppendLine($"UNWIND {UnwindVariable}.{key} AS {unwindVariable}");
+
             var relation = NodeConfig.Relations[key];
-            var groups = value.GroupBy(x => x).ToDictionary(x => x.Key, x => x.Count());
+
+            //Grouping the properties by their iteration
+            var groups = value
+                .GroupBy(x => x)
+                .ToDictionary(x => x.Key, x => x.Count());
             //Any property with the following iteration is not a nullable property
             //Any property lower than the following iteration is a nullable property
             var maxIteration = groups.Max(x => x.Value);
             var notNullableProperties = groups.Where(x => x.Value == maxIteration).Select(x => x.Key);
             var nullableProperties = groups.Where(x => x.Value < maxIteration).Select(x => x.Key);
+
             var nodeAlias = $"{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}";
             var endNodeLabel = relation.EndNodeType != null ? relation.EndNodeType.Name : relation.EndNodeLabel;
+            var objectPropertyPath = isMultiple ? unwindVariable : $"{unwindVariable}.{key}";
             CypherBuilder.AppendLine(
-                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", notNullableProperties.Select(x => $"{x}: {UnwindVariable}.{key}.{x}"))} }})"
+                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", notNullableProperties.Select(x => $"{x}: {objectPropertyPath}.{x}"))} }})"
             );
             if (nullableProperties.Any())
                 CypherBuilder.AppendLine(
-                    $"SET {string.Join(", ", nullableProperties.Select(x => $"{nodeAlias}.{x} = {UnwindVariable}.{key}.{x}"))}"
-            );
-            CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}){relation.Format()}({nodeAlias})");
-        }
-        foreach (var (key, value) in MultipleRelations)
-        {
-            var unwindVariable = $"uw_{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}";
-            CypherBuilder.AppendLine("WITH *");
-            CypherBuilder.AppendLine($"WHERE {UnwindVariable}.{key} IS NOT NULL");
-            CypherBuilder.AppendLine($"UNWIND {UnwindVariable}.{key} AS {unwindVariable}");
-            var relation = NodeConfig.Relations[key];
-            var groups = value.GroupBy(x => x).ToDictionary(x => x.Key, x => x.Count());
-            //Any property with the following iteration is not a nullable property
-            //Any property lower than the following iteration is a nullable property
-            var maxIteration = groups.Max(x => x.Value);
-            var notNullableProperties = groups.Where(x => x.Value == maxIteration).Select(x => x.Key);
-            var nullableProperties = groups.Where(x => x.Value < maxIteration).Select(x => x.Key);
-            var nodeAlias = $"{JsonNamingPolicy.CamelCase.ConvertName(key)}_{NodeSetIndex}";
-            var endNodeLabel = relation.EndNodeType != null ? relation.EndNodeType.Name : relation.EndNodeLabel;
-            CypherBuilder.AppendLine(
-                $"MERGE ({nodeAlias}:{endNodeLabel} {{ {string.Join(", ", notNullableProperties.Select(x => $"{x}: {unwindVariable}.{x}"))} }})"
-            );
-            if (nullableProperties.Any())
-                CypherBuilder.AppendLine(
-                    $"SET {string.Join(", ", nullableProperties.Select(x => $"{nodeAlias}.{x} = {unwindVariable}.{x}"))}"
+                    $"SET {string.Join(", ", nullableProperties.Select(x => $"{nodeAlias}.{x} = {objectPropertyPath}.{x}"))}"
                 );
             CypherBuilder.AppendLine($"CREATE ({rootNodeAlias}){relation.Format()}({nodeAlias})");
         }
     }
+    #endregion
 }
