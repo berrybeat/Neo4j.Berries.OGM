@@ -1,11 +1,11 @@
-using System.Diagnostics;
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models;
-using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
-
+using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Berries.OGM.Enums;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 
@@ -16,205 +16,201 @@ public class CreateCommandTests
 
     public CreateCommandTests()
     {
-        _ = new Neo4jSingletonContext(this.GetType().Assembly);
+        _ = new Neo4jSingletonContext(GetType().Assembly);
         CypherBuilder = new StringBuilder();
     }
     [Fact]
-    public void Build_Parameters_BasedOnGivenIndex()
+    public void Should_Create_Simple_Create_Command()
     {
-        var index = 0;
-        var nodeSetIndex = 0;
-        var movie = new Movie
-        {
-            Id = Guid.NewGuid(),
-            Name = "Matrix"
-        };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
-        sut.Parameters.Should().HaveCount(3);
-        sut.Parameters[$"cp_{nodeSetIndex}_{index}_0"].Should().Be(movie.Id.ToString());
-        sut.Parameters[$"cp_{nodeSetIndex}_{index}_1"].Should().Be(movie.Name);
-        sut.Parameters[$"cp_{nodeSetIndex}_{index}_2"].Should().Be(movie.ReleaseDate);
+        var sut = GetSUTInstance(new(), "movie_0");
+        sut.Add(new() {
+            { "Id", Guid.NewGuid() },
+            { "Title", "The Matrix" },
+            { "Released", 1999 }
+        });
+        sut.GenerateCypher("Movie");
+        var cypher = CypherBuilder.ToString();
+        cypher.Trim().Should().Be("CREATE (node_0:Movie { Id: movie_0.Id, Title: movie_0.Title, Released: movie_0.Released })");
     }
     [Fact]
-    public void Build_Cypher_BasedOnGivenIndex()
+    public void Should_Create_Command_With_Merging_Single_Relations()
     {
-        var index = 0;
-        var nodeSetIndex = 0;
-        var movie = new Movie
-        {
-            Id = Guid.NewGuid(),
-            Name = "Matrix"
-        };
-        _ = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
-        CypherBuilder.ToString().Should().Be($"CREATE (movie0:Movie {{ Id: $cp_{nodeSetIndex}_{index}_0, Name: $cp_{nodeSetIndex}_{index}_1, ReleaseDate: $cp_{nodeSetIndex}_{index}_2 }})\n");
+        var nodeConfig = new NodeConfiguration();
+        var relationConfig = new RelationConfiguration("Person", "DIRECTED", RelationDirection.In);
+        nodeConfig.Relations.TryAdd("Director", relationConfig);
+
+        var sut = GetSUTInstance(nodeConfig, "movie_0");
+        sut.Add(new() {
+            { "Id", Guid.NewGuid() },
+            { "Title", "The Matrix" },
+            { "Released", 1999 },
+            { "Director", new Dictionary<string, object> {
+                { "Name", "Lana Wachowski" },
+                { "Born", 1965 }
+            } }
+        });
+        sut.GenerateCypher("Movie");
+        var cypher = CypherBuilder.ToString();
+        cypher.Trim().Should()
+            .Be("""
+            CREATE (node_0:Movie { Id: movie_0.Id, Title: movie_0.Title, Released: movie_0.Released })
+            WITH *
+            WHERE movie_0.Director IS NOT NULL
+            MERGE (director_0:Person { Name: movie_0.Director.Name, Born: movie_0.Director.Born })
+            CREATE (node_0)<-[:DIRECTED]-(director_0)
+            """);
     }
     [Fact]
-    public void Parameters_With_GuidType_Should_Be_Converted_ToString()
+    public void Should_Take_Merge_Props_Into_Account()
     {
-        var index = 0;
-        var nodeSetIndex = 0;
-        var movie = new Movie
+        var nodeConfig = Neo4jSingletonContext.Configs["Movie"];
+        var sut = GetSUTInstance(nodeConfig, "movie_0");
+        sut.Add(new Movie
         {
             Id = Guid.NewGuid(),
-            Name = "Matrix"
-        };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
-        sut.Parameters[$"cp_{nodeSetIndex}_{index}_0"].Should().BeOfType<string>();
-    }
-    [Fact]
-    public void Should_Create_Cypher_With_Creating_One_Relation()
-    {
-        var index = 0;
-        var nodeSetIndex = 0;
-        var movie = new Movie
-        {
-            Id = Guid.NewGuid(),
-            Name = "Matrix",
-            ReleaseDate = new DateTime(1999, 1, 1),
+            Name = "The Matrix",
+            ReleaseDate = new DateTime(1999, 3, 31),
             Director = new Person
             {
-                Id = Guid.NewGuid(),
-            }
-        };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
-
-        CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
-        MERGE (person0_1:Person { Id: $cp_0_0_3 })
-        CREATE (movie0)<-[:DIRECTED]-(person0_1)
-        """);
-        sut.Parameters["cp_0_0_3"].Should().Be(movie.Director.Id.ToString());
-    }
-    [Fact]
-    public void Should_Create_Cypher_With_Creating_A_Collection_Of_Relations()
-    {
-        var index = 0;
-        var nodeSetIndex = 0;
-        var movie = new Movie
-        {
-            Id = Guid.NewGuid(),
-            Name = "Matrix",
-            ReleaseDate = new DateTime(1999, 1, 1),
-            Actors =
-            [
-                new()
-                {
-                    Id = Guid.NewGuid()
+                FirstName = "Lana",
+                LastName = "Wachowski",
+                MoviesAsDirector = [
+                    new Movie() {
+                        Id = Guid.NewGuid(),
+                        Name = "The Matrix Reloaded",
+                        ReleaseDate = new DateTime(2003, 5, 15),
+                        Actors = [
+                            new Person {
+                                Id = Guid.NewGuid(),
+                                FirstName = "Carrie-Anne",
+                                LastName = "Moss",
+                            }
+                        ]
+                    }
+                ]
+            },
+            Actors = [
+                new Person {
+                    Id = Guid.NewGuid(),
+                    FirstName = "Keanu",
+                    LastName = "Reeves",
+                    Age = 56
                 },
-                new()
-                {
-                    Id = Guid.NewGuid()
+                new Person {
+                    Id = Guid.NewGuid(),
+                    FirstName = "Carrie-Anne",
+                    LastName = "Moss",
                 }
             ]
-        };
-        var sut = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
-        CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
-        MERGE (person0_1:Person { Id: $cp_0_0_3 })
-        CREATE (movie0)<-[:ACTED_IN]-(person0_1)
-        MERGE (person0_3:Person { Id: $cp_0_0_4 })
-        CREATE (movie0)<-[:ACTED_IN]-(person0_3)
+        });
+        sut.GenerateCypher("Movie");
+        var cypher = CypherBuilder.ToString();
+        cypher.Trim().Should().Be("""
+        CREATE (node_0:Movie { Id: movie_0.Id, Name: movie_0.Name, ReleaseDate: movie_0.ReleaseDate })
+        WITH *
+        WHERE movie_0.Director IS NOT NULL
+        MERGE (director_0:Person { Id: movie_0.Director.Id })
+        CREATE (node_0)<-[:DIRECTED]-(director_0)
+        WITH *
+        WHERE movie_0.Actors IS NOT NULL
+        UNWIND movie_0.Actors AS uw_actors_0
+        MERGE (actors_0:Person { Id: uw_actors_0.Id })
+        CREATE (node_0)<-[:ACTED_IN]-(actors_0)
         """);
-        sut.Parameters["cp_0_0_3"].Should().Be(movie.Actors[0].Id.ToString());
-        sut.Parameters["cp_0_0_4"].Should().Be(movie.Actors[1].Id.ToString());
     }
     [Fact]
-    public void Should_Take_Less_Than_A_Second_To_Build_1000_Commands()
+    public void Should_Add_Set_Command_For_Nullable_Properties_In_Relations()
     {
-        var index = 0;
-        var nodeSetIndex = 0;
-        var movies = FakeMovies.GetMovie(1000); //This means 1000 movies an 10 actors per movie = 10000 actors and 1000 movies = 11000 nodes
-        var sw = new Stopwatch();
-        sw.Start();
-        foreach (var movie in movies)
+        var nodeConfig = new NodeConfiguration();
+        var directedRelationConfig = new RelationConfiguration("Person", "DIRECTED", RelationDirection.In);
+        var actedRelationConfig = new RelationConfiguration("Person", "ACTED_IN", RelationDirection.In);
+        nodeConfig.Relations.TryAdd("Director", directedRelationConfig);
+        nodeConfig.Relations.TryAdd("Actors", actedRelationConfig);
+        var sut = GetSUTInstance(nodeConfig, "movie_0");
+        sut.Add(new Dictionary<string, object>
         {
-            _ = new CreateCommand<Movie>(movie, index, nodeSetIndex, CypherBuilder);
-        }
-        sw.Stop();
-        sw.ElapsedMilliseconds.Should().BeLessThan(1000);
-    }
-    [Fact]
-    public void Should_Create_Shadow_Node_Without_Having_The_Configuration()
-    {
-        var movie = new Movie
-        {
-            Id = Guid.NewGuid(),
-            Name = "Matrix",
-            ReleaseDate = new DateTime(1999, 1, 1),
-            Location = new Location
+            {"Id", Guid.NewGuid()},
+            {"Name", "The Matrix"},
+            {"ReleaseDate", new DateTime(1999, 3, 31)},
+            {"Director", new Dictionary<string, object>
             {
-                Id = Guid.NewGuid()
-            }
-        };
-        var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
-        CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
-        MERGE (location0_1:Location { Id: $cp_0_0_3 })
-        CREATE (movie0)-[:FILMED_AT]->(location0_1)
-        """);
-        sut.Parameters["cp_0_0_0"].Should().Be(movie.Id.ToString());
-        sut.Parameters["cp_0_0_1"].Should().Be(movie.Name);
-        sut.Parameters["cp_0_0_2"].Should().Be(movie.ReleaseDate);
-        sut.Parameters["cp_0_0_3"].Should().Be(movie.Location.Id.ToString());
-    }
-    [Fact]
-    public void Should_Create_Target_Nodes_Without_Configuration()
-    {
-        var movie = new Movie
-        {
-            Id = Guid.NewGuid(),
-            Name = "Matrix",
-            ReleaseDate = new DateTime(1999, 1, 1),
-            Equipments =
-            [
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Camera Test",
-                    Type = Mocks.Enums.EquipmentType.Camera
-
+                {"FirstName", "Lana"},
+                {"LastName", "Wachowski"},
+            }},
+            {"Actors", new List<Dictionary<string, object>> {
+                new () {
+                    {"Id", Guid.NewGuid()},
+                    {"FirstName", "Keanu"},
+                    {"LastName", "Reeves"},
+                    {"Age", 56}
                 },
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Light Test",
-                    Type = Mocks.Enums.EquipmentType.Light
+                new () {
+                    {"Id", Guid.NewGuid()},
+                    {"FirstName", "Carrie-Anne"},
+                    {"LastName", "Moss"},
                 }
-            ]
-        };
-        var sut = new CreateCommand<Movie>(movie, 0, 0, CypherBuilder);
-        CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (movie0:Movie { Id: $cp_0_0_0, Name: $cp_0_0_1, ReleaseDate: $cp_0_0_2 })
-        MERGE (equipment0_1:Equipment { Id: $cp_0_0_3, Name: $cp_0_0_4, Type: $cp_0_0_5 })
-        CREATE (movie0)-[:USES]->(equipment0_1)
-        MERGE (equipment0_3:Equipment { Id: $cp_0_0_6, Name: $cp_0_0_7, Type: $cp_0_0_8 })
-        CREATE (movie0)-[:USES]->(equipment0_3)
+            }}
+        });
+        sut.GenerateCypher("Movie");
+        var cypher = CypherBuilder.ToString();
+        cypher.Trim().Should().Be("""
+        CREATE (node_0:Movie { Id: movie_0.Id, Name: movie_0.Name, ReleaseDate: movie_0.ReleaseDate })
+        WITH *
+        WHERE movie_0.Director IS NOT NULL
+        MERGE (director_0:Person { FirstName: movie_0.Director.FirstName, LastName: movie_0.Director.LastName })
+        CREATE (node_0)<-[:DIRECTED]-(director_0)
+        WITH *
+        WHERE movie_0.Actors IS NOT NULL
+        UNWIND movie_0.Actors AS uw_actors_0
+        MERGE (actors_0:Person { Id: uw_actors_0.Id, FirstName: uw_actors_0.FirstName, LastName: uw_actors_0.LastName })
+        SET actors_0.Age = uw_actors_0.Age
+        CREATE (node_0)<-[:ACTED_IN]-(actors_0)
         """);
-        sut.Parameters["cp_0_0_0"].Should().Be(movie.Id.ToString());
-        sut.Parameters["cp_0_0_1"].Should().Be(movie.Name);
-        sut.Parameters["cp_0_0_2"].Should().Be(movie.ReleaseDate);
-        sut.Parameters["cp_0_0_3"].Should().Be(movie.Equipments[0].Id.ToString());
-        sut.Parameters["cp_0_0_4"].Should().Be(movie.Equipments[0].Name);
-        sut.Parameters["cp_0_0_5"].Should().Be(movie.Equipments[0].Type.ToString());
-
-        sut.Parameters["cp_0_0_6"].Should().Be(movie.Equipments[1].Id.ToString());
-        sut.Parameters["cp_0_0_7"].Should().Be(movie.Equipments[1].Name);
-        sut.Parameters["cp_0_0_8"].Should().Be(movie.Equipments[1].Type.ToString());
     }
-
     [Fact]
-    public void Should_Create_Node_Without_Config() {
-        var equipment = new Equipment {
-            Id = Guid.NewGuid(),
-            Name = "Camera Test",
-            Type = Mocks.Enums.EquipmentType.Camera
-        };
-        var sut = new CreateCommand<Equipment>(equipment, 0, 0, CypherBuilder);
-        CypherBuilder.ToString().Trim().Should().Be("""
-        CREATE (equipment0:Equipment { Id: $cp_0_0_0, Name: $cp_0_0_1, Type: $cp_0_0_2 })
+    public void Should_Add_Set_Command_For_Nullable_Properties_In_Relations_SingleRelations()
+    {
+        var nodeConfig = new NodeConfiguration();
+        var directedRelationConfig = new RelationConfiguration("Person", "DIRECTED", RelationDirection.In);
+        var actedRelationConfig = new RelationConfiguration("Person", "ACTED_IN", RelationDirection.In);
+        nodeConfig.Relations.TryAdd("Director", directedRelationConfig);
+        nodeConfig.Relations.TryAdd("Actors", actedRelationConfig);
+        var sut = GetSUTInstance(nodeConfig, "movie_0");
+        sut.Add(new Dictionary<string, object>
+        {
+            {"Id", Guid.NewGuid()},
+            {"Name", "The Matrix"},
+            {"ReleaseDate", new DateTime(1999, 3, 31)},
+            {"Director", new Dictionary<string, object>
+            {
+                {"FirstName", "Lana"},
+                {"LastName", "Wachowski"},
+            }}
+        });
+        sut.Add(new Dictionary<string, object> {
+            {"Id", Guid.NewGuid()},
+            { "Name", "The Matrix Reloaded" },
+            {"Director", new Dictionary<string, object> {
+                {"FirstName", "Lana"},
+                {"LastName", "Wachowski"},
+                { "Age", 56 }
+            }}
+        });
+
+        sut.GenerateCypher("Movie");
+        var cypher = CypherBuilder.ToString();
+        cypher.Trim().Should().Be("""
+        CREATE (node_0:Movie { Id: movie_0.Id, Name: movie_0.Name, ReleaseDate: movie_0.ReleaseDate })
+        WITH *
+        WHERE movie_0.Director IS NOT NULL
+        MERGE (director_0:Person { FirstName: movie_0.Director.FirstName, LastName: movie_0.Director.LastName })
+        SET director_0.Age = movie_0.Director.Age
+        CREATE (node_0)<-[:DIRECTED]-(director_0)
         """);
-        sut.Parameters["cp_0_0_0"].Should().Be(equipment.Id.ToString());
-        sut.Parameters["cp_0_0_1"].Should().Be(equipment.Name);
-        sut.Parameters["cp_0_0_2"].Should().Be(equipment.Type.ToString());
+    }
+    private CreateCommand GetSUTInstance(NodeConfiguration nodeConfiguration, string unwindVariable)
+    {
+        var sut = new CreateCommand(0, unwindVariable, nodeConfiguration, CypherBuilder);
+        return sut;
     }
 }
