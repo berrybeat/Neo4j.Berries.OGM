@@ -54,7 +54,8 @@ public abstract class GraphContext
     /// <remarks>IMPORTANT: The anonymous method makes the code vulnerable against cypher injection.</remarks>
     public NodeSet Anonymous(string label)
     {
-        var nodeSet = new NodeSet(label, new NodeConfiguration(), NodeSets.Count(), Database, CypherBuilder);
+        Neo4jSingletonContext.Configs.TryGetValue(label, out var nodeConfig);
+        var nodeSet = new NodeSet(label, nodeConfig ?? new(), NodeSets.Count(), Database, CypherBuilder);
         NodeSets = NodeSets.Append(nodeSet);
         return nodeSet;
     }
