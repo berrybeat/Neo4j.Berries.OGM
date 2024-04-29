@@ -6,6 +6,8 @@ using FluentAssertions;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 
+//This has to be set to Serial, otherwise will conflict with ObjectUtilsTests
+[Collection("Serial")]
 public class NodeQueryTests
 {
     private readonly ApplicationGraphContext _graphContext;
