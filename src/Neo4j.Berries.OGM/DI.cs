@@ -2,7 +2,6 @@ using System.Reflection;
 using Neo4j.Berries.OGM.Contexts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Neo4j.Berries.OGM;
 

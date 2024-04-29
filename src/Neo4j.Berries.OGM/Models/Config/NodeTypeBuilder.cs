@@ -22,6 +22,19 @@ where TNode : class
     }
 
     /// <summary>
+    /// The property will be used as an identifier for the node.
+    /// </summary>
+    /// <remarks>
+    /// The identifier is used to find the node in the database and the value for the identifier must not be null.
+    /// </remarks>
+    public NodeTypeBuilder<TNode> HasIdentifier<TProperty>(Expression<Func<TNode, TProperty>> expression)
+    {
+        var propertyName = ((MemberExpression)expression.Body).Member.Name;
+        Config.Identifiers.Add(propertyName);
+        return this;
+    }
+
+    /// <summary>
     /// The property will be used to create a relation with another nodes
     /// </summary>
     public RelationConfiguration<TNode, TProperty> HasRelationWithMultiple<TProperty>(Expression<Func<TNode, IEnumerable<TProperty>>> expression, string label, RelationDirection direction)

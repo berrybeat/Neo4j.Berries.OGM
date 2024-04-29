@@ -1,3 +1,4 @@
+using System.Reflection.Metadata.Ecma335;
 using Neo4j.Berries.OGM.Enums;
 
 namespace Neo4j.Berries.OGM.Models.Config;
@@ -63,6 +64,32 @@ public class NodeConfigurationBuilder
     {
         NodeConfiguration.Relations[Property] = new RelationConfiguration(TargetNodeLabel, RelationLabel, Direction);
         ExcludeProperties(Property);
+        return this;
+    }
+
+    /// <summary>
+    /// The property will be used as an identifier for the node.
+    /// </summary>
+    /// <param name="Property">The property to use as an identifier</param>
+    /// <remarks>
+    /// The identifier is used to find the node in the database and the value for the identifier must not be null.
+    /// </remarks>
+    public NodeConfigurationBuilder HasIdentifier(string Property)
+    {
+        NodeConfiguration.Identifiers.Add(Property);
+        return this;
+    }
+    /// <summary>
+    /// The properties will be used as identifiers for the node.
+    /// </summary>
+    /// <param name="properties">The properties to use as identifiers</param>
+    /// <remarks>
+    /// The identifiers is used to find the node in the database and the value for the identifier must not be null.
+    /// </remarks>
+
+    public NodeConfigurationBuilder HasIdentifiers(params string[] properties)
+    {
+        properties.ToList().ForEach(x => HasIdentifier(x));
         return this;
     }
 }
