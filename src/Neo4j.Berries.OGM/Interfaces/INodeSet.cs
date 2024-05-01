@@ -5,6 +5,7 @@ public interface INodeSet
 {
     void Reset();
     void BuildCypher();
-    string Key { get; }
-    IEnumerable<object> Nodes { get; }
+    string Name { get; }
+    IEnumerable<object> MergeNodes { get; }
+    IEnumerable<object> NewNodes { get; }
 }

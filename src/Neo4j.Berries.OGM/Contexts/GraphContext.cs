@@ -28,17 +28,11 @@ public abstract class GraphContext
         {
             var nodeSetProp = nodeSetProps.ElementAt(i);
             var nodeSetType = nodeSetProp.PropertyType.GetGenericArguments().First().Name;
-            var nodeConfig = new NodeConfiguration();
-            if (Neo4jSingletonContext.Configs.TryGetValue(nodeSetType, out var _nodeConfig))
-            {
-                nodeConfig = _nodeConfig;
-            }
             //Creating the NodeSet instance
             var instance = Activator.CreateInstance(
                 nodeSetProp.PropertyType, //type of the nodeset
                 i, //nodeIndex
                 JsonNamingPolicy.CamelCase.ConvertName(nodeSetProp.Name), //name
-                nodeConfig, //nodeConfig will be passed in advance, to avoid searching for it everytime.
                 Database, //This is the database context and is needed for Match related methods.
                 CypherBuilder //The shared string builder, this is only used for creation.
             );
@@ -79,12 +73,12 @@ public abstract class GraphContext
     {
         Dictionary<string, object> parameters = [];
         GetCreateParameters(parameters);
-        var validNodeSets = NodeSets.Where(x => x.Nodes.Any());
+        var validNodeSets = NodeSets.Where(x => x.MergeNodes.Any() || x.NewNodes.Any());
         for (var i = 0; i < validNodeSets.Count(); i++)
         {
             if (i > 0 && i < validNodeSets.Count() - 1)
             {
-                CypherBuilder.AppendLine("WITH *");
+                CypherBuilder.AppendLine("WITH 0 AS nothing");
             }
             validNodeSets.ElementAt(i).BuildCypher();
         }
@@ -100,12 +94,12 @@ public abstract class GraphContext
     {
         Dictionary<string, object> parameters = [];
         GetCreateParameters(parameters);
-        var validNodeSets = NodeSets.Where(x => x.Nodes.Any());
+        var validNodeSets = NodeSets.Where(x => x.MergeNodes.Any() || x.NewNodes.Any());
         for (var i = 0; i < validNodeSets.Count(); i++)
         {
             if (i > 0 && i < validNodeSets.Count() - 1)
             {
-                CypherBuilder.AppendLine("WITH *");
+                CypherBuilder.AppendLine("WITH 0 as nothing");
             }
             validNodeSets.ElementAt(i).BuildCypher();
         }
@@ -118,9 +112,12 @@ public abstract class GraphContext
 
     private void GetCreateParameters(Dictionary<string, object> parameters)
     {
-        foreach (var nodeSet in NodeSets.Where(x => x.Nodes.Any()))
+        foreach (var nodeSet in NodeSets.Where(x => x.MergeNodes.Any() || x.NewNodes.Any()))
         {
-            parameters[nodeSet.Key] = nodeSet.Nodes;
+            if (nodeSet.MergeNodes.Any())
+                parameters[$"{nodeSet.Name}_merges"] = nodeSet.MergeNodes;
+            if (nodeSet.NewNodes.Any())
+                parameters[$"{nodeSet.Name}_creates"] = nodeSet.NewNodes;
         }
     }
     private void ResetCreateCommands()

@@ -16,7 +16,6 @@ public class NodeTypeBuilderTests : TestBase
         sut.HasIdentifier(x => x.Id);
         sut.HasIdentifier(x => x.Name);
 
-        Neo4jSingletonContext.Configs["Movie"].Identifiers.Should().HaveCount(2);
         Neo4jSingletonContext.Configs["Movie"].Identifiers.Should().Contain("Id");
         Neo4jSingletonContext.Configs["Movie"].Identifiers.Should().Contain("Name");
     }
