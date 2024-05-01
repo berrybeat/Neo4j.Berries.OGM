@@ -76,7 +76,7 @@ public abstract class GraphContext
         var validNodeSets = NodeSets.Where(x => x.MergeNodes.Any() || x.NewNodes.Any());
         for (var i = 0; i < validNodeSets.Count(); i++)
         {
-            if (i > 0 && i < validNodeSets.Count() - 1)
+            if (i > 0 && i < validNodeSets.Count())
             {
                 CypherBuilder.AppendLine("WITH 0 AS nothing");
             }
@@ -97,7 +97,7 @@ public abstract class GraphContext
         var validNodeSets = NodeSets.Where(x => x.MergeNodes.Any() || x.NewNodes.Any());
         for (var i = 0; i < validNodeSets.Count(); i++)
         {
-            if (i > 0 && i < validNodeSets.Count() - 1)
+            if (i > 0 && i < validNodeSets.Count())
             {
                 CypherBuilder.AppendLine("WITH 0 as nothing");
             }

@@ -17,14 +17,14 @@ public class DatabaseQueryTests() : TestBase(true)
     }
 
     [Fact]
-    public async void Should_Count_All_Movies_Which_Only_Have_Actors()
+    public async void Should_Count_All_Movies_Which_Have_Actors()
     {
         var count = await TestGraphContext
             .Movies
             .Match()
             .WithRelation(x => x.Actors)
             .CountAsync();
-        count.Should().Be(5);
+        count.Should().Be(10);
     }
     [Fact]
     public async void Should_Count_All_Movies_Which_Only_Have_Director()

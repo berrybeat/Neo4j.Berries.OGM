@@ -211,4 +211,57 @@ public class NodeSetTests : TestBase
         """);
     }
 
+    [Fact]
+    public void Should_Create_Merge_Cypher_With_Simple_Single_Relation_On_First_Depth() {
+        var node = new Node("Movie");
+        node.Consider([
+            new () { { "Name", "The Matrix" }, { "ReleaseDate", new DateTime(1999, 3, 31) } },
+            new () { 
+                { "Name", "The Matrix Reloaded" }, 
+                { "ReleaseDate", new DateTime(2003, 5, 15) },
+                { "Director", new Dictionary<string, object> {
+                    { "FirstName", "Lana" },
+                    { "LastName", "Wachowski" }
+                } } },
+        ]);
+
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$movies", 0);
+        var sut = cypherBuilder.ToString();
+        sut.Trim().Should().Be("""
+        UNWIND $movies AS muv_0
+        MERGE (m_0:Movie) SET m_0.Name=muv_0.Name, m_0.ReleaseDate=muv_0.ReleaseDate
+        FOREACH (ignored IN CASE WHEN muv_0.Director IS NOT NULL THEN [1] ELSE [] END |
+        MERGE (m_0_1_0:Person) SET m_0_1_0.FirstName=muv_0.Director.FirstName, m_0_1_0.LastName=muv_0.Director.LastName
+        MERGE (m_0)<-[:DIRECTED]-(m_0_1_0)
+        )
+        """);
+    }
+
+    [Fact]
+    public void Should_Create_Creation_Cypher_With_Simple_Single_Relation_On_First_Depth() {
+        var node = new Node("Movie");
+        node.Consider([
+            new () { { "Name", "The Matrix" }, { "ReleaseDate", new DateTime(1999, 3, 31) } },
+            new () { 
+                { "Name", "The Matrix Reloaded" }, 
+                { "ReleaseDate", new DateTime(2003, 5, 15) },
+                { "Director", new Dictionary<string, object> {
+                    { "FirstName", "Lana" },
+                    { "LastName", "Wachowski" }
+                } } },
+        ]);
+
+        var cypherBuilder = new StringBuilder();
+        node.Create(cypherBuilder, "$movies", 0);
+        var sut = cypherBuilder.ToString();
+        sut.Trim().Should().Be("""
+        UNWIND $movies AS cuv_0
+        CREATE (c_0:Movie) SET c_0.Name=cuv_0.Name, c_0.ReleaseDate=cuv_0.ReleaseDate
+        FOREACH (ignored IN CASE WHEN cuv_0.Director IS NOT NULL THEN [1] ELSE [] END |
+        MERGE (m_0_1_0:Person) SET m_0_1_0.FirstName=cuv_0.Director.FirstName, m_0_1_0.LastName=cuv_0.Director.LastName
+        CREATE (c_0)<-[:DIRECTED]-(m_0_1_0)
+        )
+        """);
+    }
 }

@@ -99,6 +99,15 @@ internal class Node(string label, int depth = 0)
             cypherBuilder.AppendLine($"CREATE ({alias}){relationConfig.Format()}({targetNodeAlias})");
             cypherBuilder.AppendLine(")");
         }
+        foreach (var relation in SingleRelations)
+        {
+            var index = SingleRelations.Keys.ToList().IndexOf(relation.Key);
+            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {unwindVariable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
+            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{unwindVariable}.{relation.Key}", nodeSetIndex, index);
+            var relationConfig = NodeConfig.Relations[relation.Key];
+            cypherBuilder.AppendLine($"CREATE ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            cypherBuilder.AppendLine(")");
+        }
     }
 
     public void Merge(StringBuilder cypherBuilder, string collection, int nodeSetIndex)
@@ -113,6 +122,15 @@ internal class Node(string label, int depth = 0)
             var variable = ComputeAlias("muv", nodeSetIndex, index, depth + 1);
             cypherBuilder.AppendLine($"FOREACH ({variable} IN {unwindVariable}.{relation.Key} |");
             var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, variable, nodeSetIndex, index);
+            var relationConfig = NodeConfig.Relations[relation.Key];
+            cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            cypherBuilder.AppendLine(")");
+        }
+        foreach (var relation in SingleRelations)
+        {
+            var index = SingleRelations.Keys.ToList().IndexOf(relation.Key);
+            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {unwindVariable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
+            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{unwindVariable}.{relation.Key}", nodeSetIndex, index);
             var relationConfig = NodeConfig.Relations[relation.Key];
             cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
             cypherBuilder.AppendLine(")");
