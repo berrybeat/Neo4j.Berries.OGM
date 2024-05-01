@@ -134,8 +134,8 @@ public class NodeSetTests : TestBase
                 { "MoviesAsActor", new List<Dictionary<string, object>> {
                     new () { { "Name", "Movie 1" } },
                     new () { { "Name", "Movie 2" } },
-                    new () { 
-                        { "Name", "Movie 2" }, 
+                    new () {
+                        { "Name", "Movie 2" },
                         {"ReleaseDate", new DateTime(1990, 05, 10) },
                         { "Actors", new List<Dictionary<string, object>> {
                             new () { { "FirstName", "Jake" } },
@@ -164,7 +164,8 @@ public class NodeSetTests : TestBase
         """);
     }
     [Fact]
-    public void Should_Create_Cypher_With_Simple_Create() {
+    public void Should_Create_Cypher_With_Simple_Create()
+    {
         var node = new Node("Person");
         node.Consider([
             new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "John" } },
@@ -212,12 +213,13 @@ public class NodeSetTests : TestBase
     }
 
     [Fact]
-    public void Should_Create_Merge_Cypher_With_Simple_Single_Relation_On_First_Depth() {
+    public void Should_Create_Merge_Cypher_With_Simple_Single_Relation_On_First_Depth()
+    {
         var node = new Node("Movie");
         node.Consider([
             new () { { "Name", "The Matrix" }, { "ReleaseDate", new DateTime(1999, 3, 31) } },
-            new () { 
-                { "Name", "The Matrix Reloaded" }, 
+            new () {
+                { "Name", "The Matrix Reloaded" },
                 { "ReleaseDate", new DateTime(2003, 5, 15) },
                 { "Director", new Dictionary<string, object> {
                     { "FirstName", "Lana" },
@@ -239,12 +241,13 @@ public class NodeSetTests : TestBase
     }
 
     [Fact]
-    public void Should_Create_Creation_Cypher_With_Simple_Single_Relation_On_First_Depth() {
+    public void Should_Create_Creation_Cypher_With_Simple_Single_Relation_On_First_Depth()
+    {
         var node = new Node("Movie");
         node.Consider([
             new () { { "Name", "The Matrix" }, { "ReleaseDate", new DateTime(1999, 3, 31) } },
-            new () { 
-                { "Name", "The Matrix Reloaded" }, 
+            new () {
+                { "Name", "The Matrix Reloaded" },
                 { "ReleaseDate", new DateTime(2003, 5, 15) },
                 { "Director", new Dictionary<string, object> {
                     { "FirstName", "Lana" },
@@ -263,5 +266,83 @@ public class NodeSetTests : TestBase
         CREATE (c_0)<-[:DIRECTED]-(m_0_1_0)
         )
         """);
+    }
+    [Fact]
+    public void Should_Create_Cypher_And_Multiple_Relations_Of_A_SingleRelation()
+    {
+        var node = new Node("Movie");
+        node.Consider([
+            new () { { "Name", "The Matrix" }, { "ReleaseDate", new DateTime(1999, 3, 31) } },
+            new () {
+                { "Name", "The Matrix Reloaded" },
+                { "ReleaseDate", new DateTime(2003, 5, 15) },
+                { "Director", new Dictionary<string, object> {
+                    { "FirstName", "Lana" },
+                    { "LastName", "Wachowski" },
+                    { "MoviesAsActor", new List<Dictionary<string, object>> {
+                        new () { { "Name", "Movie 1" } },
+                        new () { { "Name", "Movie 2" } },
+                        new () { { "Name", "Movie 2" }, {"ReleaseDate", new DateTime(1990, 05, 10) } },
+                    } }
+                } } },
+        ]);
+
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$movies", 0);
+        var sut = cypherBuilder.ToString();
+        sut.Trim().Should().Be("""
+        UNWIND $movies AS muv_0
+        MERGE (m_0:Movie) SET m_0.Name=muv_0.Name, m_0.ReleaseDate=muv_0.ReleaseDate
+        FOREACH (ignored IN CASE WHEN muv_0.Director IS NOT NULL THEN [1] ELSE [] END |
+        MERGE (m_0_1_0:Person) SET m_0_1_0.FirstName=muv_0.Director.FirstName, m_0_1_0.LastName=muv_0.Director.LastName
+        FOREACH (muv_0_2_0 IN muv_0.Director.MoviesAsActor |
+        MERGE (m_0_2_0:Movie) SET m_0_2_0.Name=muv_0_2_0.Name, m_0_2_0.ReleaseDate=muv_0_2_0.ReleaseDate
+        MERGE (m_0_1_0)-[:ACTED_IN]->(m_0_2_0)
+        )
+        MERGE (m_0)<-[:DIRECTED]-(m_0_1_0)
+        )
+        """);
+    }
+
+    [Fact]
+    public void Should_Create_A_Merge_Cypher_And_Create_Single_Relations_Of_A_MultipleRelation()
+    {
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "MoviesAsActor", new List<Dictionary<string, object>> {
+                    new () { { "Name", "Movie 1" } },
+                    new () { { "Name", "Movie 2" } },
+                    new () {
+                        { "Name", "Movie 2" },
+                        {"ReleaseDate", new DateTime(1990, 05, 10) },
+                        { "Director", new Dictionary<string, object> {
+                            { "FirstName", "Jake" } ,
+                        } } },
+                } } },
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "Jake" }
+            }
+        ]);
+
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        sut.Trim().Should().Be("""
+        UNWIND $people AS muv_0
+        MERGE (m_0:Person {Id: muv_0.Id}) SET m_0.FirstName=muv_0.FirstName
+        FOREACH (muv_0_1_0 IN muv_0.MoviesAsActor |
+        MERGE (m_0_1_0:Movie) SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
+        FOREACH (ignored IN CASE WHEN muv_0_1_0.Director IS NOT NULL THEN [1] ELSE [] END |
+        MERGE (m_0_2_0:Person) SET m_0_2_0.FirstName=muv_0_1_0.Director.FirstName
+        MERGE (m_0_1_0)<-[:DIRECTED]-(m_0_2_0)
+        )
+        MERGE (m_0)-[:ACTED_IN]->(m_0_1_0)
+        )
+        """);
+
     }
 }

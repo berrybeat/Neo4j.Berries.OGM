@@ -1,6 +1,4 @@
-using System.Globalization;
 using System.Text;
-using Microsoft.Extensions.Options;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
@@ -146,6 +144,15 @@ internal class Node(string label, int depth = 0)
             var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, relationIndex, depth + 1);
             cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key} |");
             var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
+            var relationConfig = NodeConfig.Relations[relation.Key];
+            cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            cypherBuilder.AppendLine(")");
+        }
+        foreach (var relation in SingleRelations)
+        {
+            var relationIndex = SingleRelations.Keys.ToList().IndexOf(relation.Key);
+            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {variable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
+            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{variable}.{relation.Key}", nodeSetIndex, relationIndex);
             var relationConfig = NodeConfig.Relations[relation.Key];
             cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
             cypherBuilder.AppendLine(")");
