@@ -98,7 +98,9 @@ public class NodeSet : INodeSet
     }
     public void BuildCypher()
     {
+        MergeNode?.Consider(MergeNodes.Select(x => x as Dictionary<string, object>));
         MergeNode?.Merge(CreationCypherBuilder, $"${Name}_merges", NodeSetIndex);
+        NewNode?.Consider(NewNodes.Select(x => x as Dictionary<string, object>));
         NewNode?.Create(CreationCypherBuilder, $"${Name}_creates", NodeSetIndex);
     }
 }
