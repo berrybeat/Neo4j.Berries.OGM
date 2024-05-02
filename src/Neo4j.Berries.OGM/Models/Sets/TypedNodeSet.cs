@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
-using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Queries;
 using Neo4j.Berries.OGM.Utils;
 

@@ -2,7 +2,7 @@ namespace Neo4j.Berries.OGM.Models.Config;
 
 public class NodeSetConfigurationBuilder
 {
-    internal Dictionary<string, NodeConfiguration> NodeSetConfigurations;
+    internal Dictionary<string, NodeConfiguration> NodeSetConfigurations = [];
 
     /// <summary>
     /// Gives the option to configure a specific node set.
