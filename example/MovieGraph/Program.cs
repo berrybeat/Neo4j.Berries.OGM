@@ -8,7 +8,12 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddNeo4j<ApplicationGraphContext>(builder.Configuration, typeof(Program).Assembly);
+builder.Services.AddNeo4j<ApplicationGraphContext>(builder.Configuration, options =>
+{
+    options
+        .ReadAssemblies(typeof(Program).Assembly)
+        .EnforceIdentifiers();
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

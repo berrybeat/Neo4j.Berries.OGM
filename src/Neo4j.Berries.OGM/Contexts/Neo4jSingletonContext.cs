@@ -15,6 +15,12 @@ internal class Neo4jSingletonContext
         _assemblies = assemblies;
         ParseAssemblyForConfigurations();
     }
+    public Neo4jSingletonContext(OGMConfigurationBuilder builder)
+    {
+        _assemblies = builder.Assemblies;
+        EnforceIdentifiers = builder._EnforceIdentifiers;
+        ParseAssemblyForConfigurations();
+    }
     private void ParseAssemblyForConfigurations()
     {
         var interfaceType = typeof(INodeConfiguration<>);
