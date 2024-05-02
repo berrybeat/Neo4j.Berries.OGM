@@ -12,6 +12,7 @@ public abstract class TestBase
     public TestBase(bool withSeed = false)
     {
         _ = new Neo4jSingletonContext(GetType().Assembly);
+        Neo4jSingletonContext.EnforceIdentifiers = false;
         Neo4jOptions = new Neo4jOptions(ConfigurationsFactory.Config);
         TestGraphContext = new ApplicationGraphContext(Neo4jOptions);
         Neo4jSessionFactory.OpenSession(async session =>

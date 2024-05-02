@@ -37,7 +37,10 @@ internal class Node(string label, int depth = 0)
             .Where(x => !Identifiers.Contains(x) && !Properties.Contains(x))
             .Distinct();
         Properties.AddRange(props.Where(x => !NodeConfig.Identifiers.Contains(x)));
+        var identifiers = props.Where(x => NodeConfig.Identifiers.Contains(x));
         Identifiers.AddRange(props.Where(x => NodeConfig.Identifiers.Contains(x)));
+        if (!identifiers.Any() && Neo4jSingletonContext.EnforceIdentifiers)
+            throw new InvalidOperationException($"Identifiers are enforced but not provided in the data. Label: {label}");
     }
 
     private void AppendSingleRelations(IEnumerable<Dictionary<string, object>> nodes)

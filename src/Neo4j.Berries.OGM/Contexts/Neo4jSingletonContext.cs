@@ -8,6 +8,7 @@ internal class Neo4jSingletonContext
 {
     private readonly Assembly[] _assemblies;
 
+    public static bool EnforceIdentifiers { get; internal set; }
     internal static Dictionary<string, NodeConfiguration> Configs { get; private set; } = [];
     public Neo4jSingletonContext(params Assembly[] assemblies)
     {
@@ -36,7 +37,7 @@ internal class Neo4jSingletonContext
             var builder = Activator.CreateInstance(typeof(NodeTypeBuilder<>).MakeGenericType(genericArguments[0]));
             var config = Activator.CreateInstance(configType.Instance);
             var configureMethod = configType.Instance.GetMethod(nameof(INodeConfiguration<object>.Configure));
-            configureMethod.Invoke(config, [builder]);           
+            configureMethod.Invoke(config, [builder]);
         }
 
     }
