@@ -9,8 +9,6 @@ public class PersonConfigurations : INodeConfiguration<Person>
 {
     public void Configure(NodeTypeBuilder<Person> builder)
     {
-        builder.Exclude(x => x.ActedInMovies);
-        builder.Exclude(x => x.DirectedMovies);
         builder.HasRelationWithMultiple(x => x.DirectedMovies, "DIRECTED", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.ActedInMovies, "ACTED_IN", RelationDirection.Out);
     }

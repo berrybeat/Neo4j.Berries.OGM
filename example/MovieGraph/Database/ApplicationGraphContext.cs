@@ -1,8 +1,6 @@
 using MovieGraph.Database.Models;
 using Neo4j.Berries.OGM.Contexts;
-using Neo4j.Berries.OGM.Models;
-using Neo4j.Driver;
-
+using Neo4j.Berries.OGM.Models.Sets;
 namespace MovieGraph.Database;
 
 public class ApplicationGraphContext(Neo4jOptions options) : GraphContext(options)

@@ -1,6 +1,6 @@
 using System.Text;
-using Bogus.DataSets;
 using FluentAssertions;
+using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Tests.Common;
 
@@ -343,6 +343,17 @@ public class NodeSetTests : TestBase
         MERGE (m_0)-[:ACTED_IN]->(m_0_1_0)
         )
         """);
+    }
 
+    [Fact]
+    public void Should_Throw_InvalidOperationException_When_Identifiers_Are_Enforced_And_Merge_Is_Applied()
+    {
+        var node = new Node("Person");
+        Neo4jSingletonContext.EnforceIdentifiers = true;
+        var act = () => node.Consider([
+            new () { { "FirstName", "John" } },
+            new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" }, { "LastName", "Doe" } },
+        ]);
+        act.Should().ThrowExactly<InvalidOperationException>().WithMessage("Identifiers are enforced but not provided in the data. Label: Person");
     }
 }
