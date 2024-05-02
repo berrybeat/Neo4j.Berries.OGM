@@ -11,8 +11,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddNeo4j<ApplicationGraphContext>(builder.Configuration, options =>
 {
     options
-        .ReadAssemblies(typeof(Program).Assembly)
-        .EnforceIdentifiers();
+        .ConfigureFromAssemblies(typeof(Program).Assembly);
+    options.EnforceIdentifiers = true;
 });
 var app = builder.Build();
 

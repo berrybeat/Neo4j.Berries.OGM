@@ -31,10 +31,10 @@ public static class DI
     public static IServiceCollection AddNeo4j<TContext>(this IServiceCollection services, IConfiguration configuration, Action<OGMConfigurationBuilder> options)
     where TContext : GraphContext
     {
-        var configurationBuilder = new OGMConfigurationBuilder();
-        options(configurationBuilder);
         services.AddSingleton(sp =>
         {
+            var configurationBuilder = new OGMConfigurationBuilder(sp);
+            options(configurationBuilder);
             return new Neo4jSingletonContext(configurationBuilder);
         });
         services.AddScoped(sp =>
