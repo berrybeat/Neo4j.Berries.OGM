@@ -63,4 +63,12 @@ public class NodeConfigurationBuilderTests
         Action act = () => sut.IncludeProperties("Actor");
         act.Should().Throw<InvalidOperationException>().WithMessage("Property 'Actor' is already excluded.");
     }
+
+    [Fact]
+    public void Should_Set_Identifier()
+    {
+        var sut = new NodeConfigurationBuilder();
+        sut.HasIdentifier("Id");
+        sut.NodeConfiguration.Identifiers.Should().Contain("Id");
+    }
 }

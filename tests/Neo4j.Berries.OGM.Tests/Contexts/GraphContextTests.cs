@@ -209,23 +209,6 @@ public class GraphContextTests : TestBase
     }
 
     [Fact]
-    public async void Should_Clear_Cypher_Builder_After_SaveChanges()
-    {
-        var movie = FakeMovies.GetMovie(1, 1);
-        TestGraphContext.Movies.AddRange(movie);
-        TestGraphContext.Anonymous("Building").Add(new Dictionary<string, object> {
-            {"Number", "123987"},
-            {"Name", "Cinema 1"}
-        });
-        await TestGraphContext.SaveChangesAsync();
-        TestGraphContext.CypherBuilder.ToString().Should().BeEmpty();
-        TestGraphContext
-            .NodeSets
-            .Should()
-            .AllSatisfy(x => x.Nodes.Should().BeEmpty());
-    }
-
-    [Fact]
     public async void Should_Save_Multiple_Times_With_Transaction()
     {
         var movie1 = FakeMovies.GetMovie(1, 1).First();

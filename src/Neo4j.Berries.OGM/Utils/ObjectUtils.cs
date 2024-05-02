@@ -2,6 +2,11 @@ using System.Reflection;
 using System.Collections;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
+using System.Reflection.Metadata;
+using Microsoft.Extensions.DependencyInjection;
+using System.Security.Cryptography.X509Certificates;
+using Neo4j.Driver;
+using Neo4j.Berries.OGM.Contexts;
 
 namespace Neo4j.Berries.OGM.Utils;
 
@@ -20,11 +25,18 @@ public static class ObjectUtils
     {
         return input.GetType().IsAssignableTo(typeof(IDictionary));
     }
-    internal static Dictionary<string, object> NormalizeValuesForNeo4j(this Dictionary<string, object> input, bool nested = false)
+    /// <summary>
+    /// Checks if the object is a collection, but being a dictionary collection is excluded.
+    /// </summary>
+    internal static bool IsCollection(this object input)
+    {
+        return input.GetType().IsAssignableTo(typeof(IEnumerable)) && !input.IsDictionary();
+    }
+    internal static Dictionary<string, object> NormalizeValuesForNeo4j(this Dictionary<string, object> input, bool recursion = false)
     {
         foreach (var item in input)
         {
-            if (item.Value is null && nested)
+            if (item.Value is null && recursion)
             {
                 input.Remove(item.Key);
                 continue;
@@ -40,7 +52,7 @@ public static class ObjectUtils
                 input[item.Key] = ((IEnumerable)item.Value).Cast<Dictionary<string, object>>().Select(x => NormalizeValuesForNeo4j(x, true));
                 continue;
             }
-            if (item.Value is null && nested)
+            if (item.Value is null && recursion)
             {
                 input.Remove(item.Key);
                 continue;
@@ -102,4 +114,36 @@ public static class ObjectUtils
         }
         return obj;
     }
+    /// <summary>
+    /// Every relation in this case, must have at least one identifier.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when a relation does not have any identifier or the identifier's value is null</exception>
+    internal static void ValidateIdentifiers(this Dictionary<string, object> input, NodeConfiguration config, int iterations = 0, string label = null)
+    {
+        var configuredIdentifiers = input.Keys.Where(config.Identifiers.Contains);
+        if (!configuredIdentifiers.Any())
+        {
+            throw new InvalidOperationException($"No identifier found, recursion: {iterations}, node: {label ?? "Root"}");
+        }
+        var nullIdentifiers = configuredIdentifiers.ToDictionary(x => x, x => input[x]).Where(x => x.Value == null);
+        if (nullIdentifiers.Any())
+        {
+            var keys = nullIdentifiers.Select(x => x.Key);
+            throw new InvalidOperationException($"The following identifiers are null: {string.Join(", ", keys)}, Recursion: {iterations}, Node: {label ?? "Root"}");
+        }
+        var relations = input.Keys.Where(config.Relations.Keys.Contains);
+        foreach (var relation in relations)
+        {
+            var relationConfig = config.Relations[relation];
+            var nodeLabel = relationConfig.EndNodeLabel ?? relationConfig.EndNodeType.Name;
+            Neo4jSingletonContext.Configs.TryGetValue(nodeLabel, out var endNodeConfig);
+            if (input[relation].IsDictionary())
+            {
+                (input[relation] as Dictionary<string, object>).ValidateIdentifiers(endNodeConfig ?? new(), iterations + 1, nodeLabel);
+                continue;
+            }
+            (input[relation] as IEnumerable<Dictionary<string, object>>).ToList().ForEach(x => x.ValidateIdentifiers(endNodeConfig ?? new(), iterations + 1, nodeLabel));
+        }
+    }
+
 }

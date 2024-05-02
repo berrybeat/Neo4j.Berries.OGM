@@ -11,4 +11,5 @@ public class Person
     public List<Movie> MoviesAsActor { get; set; }
     public List<Movie> MoviesAsDirector { get; set; }
     public List<Person> Friends { get; set; }
+    public Address Address { get; set; }
 }

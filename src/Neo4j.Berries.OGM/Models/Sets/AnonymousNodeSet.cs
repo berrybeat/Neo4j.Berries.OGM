@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
@@ -12,36 +11,54 @@ public class NodeSet : INodeSet
 {
     #region Constructor parameters
     internal StringBuilder CreationCypherBuilder { get; }
-    internal CreateCommand CreateCommand { get; }
     public DatabaseContext DatabaseContext { get; }
     public NodeConfiguration NodeConfig { get; }
-    public string Key { get; }
+    //This is the name of the NodeSet
+    public string Name { get; }
     private string Label { get; }
-    private string UnwindVariable { get; }
     private int NodeSetIndex { get; }
     #endregion
-    public IEnumerable<object> Nodes { get; private set; } = [];
+    internal Node MergeNode;
+    internal Node NewNode;
+    public IEnumerable<object> MergeNodes { get; private set; } = [];
+    public IEnumerable<object> NewNodes { get; private set; } = [];
     public NodeSet(string label, NodeConfiguration nodeConfiguration, int nodeSetIndex, DatabaseContext databaseContext, StringBuilder cypherBuilder)
     {
         NodeSetIndex = nodeSetIndex;
         NodeConfig = nodeConfiguration;
         DatabaseContext = databaseContext;
         CreationCypherBuilder = cypherBuilder;
-        Key = $"anonymousList_{NodeSetIndex}";
+        Name = $"anonymousList_{NodeSetIndex}";
         Label = label;
-        UnwindVariable = $"uw_{JsonNamingPolicy.CamelCase.ConvertName(label)}_{NodeSetIndex}";
-        CreateCommand = new CreateCommand(nodeSetIndex, UnwindVariable, nodeConfiguration, cypherBuilder);
     }
+
+    /// <summary>
+    /// This method will try to merge a whole path of nodes and relations. It can be slower than the Add method.
+    /// </summary>
+    public void Merge(Dictionary<string, object> node)
+    {
+        MergeNode ??= new(Label);
+        MergeNodes = MergeNodes.Append(node.NormalizeValuesForNeo4j());
+    }
+    /// <summary>
+    /// This method will try to merge a whole path of nodes and relations. It can be slower than the Add method.
+    /// </summary>
+    public void MergeRange(IEnumerable<Dictionary<string, object>> nodes)
+    {
+        foreach (var node in nodes) Merge(node);
+    }
+
+    /// <summary>
+    /// This method anonymously add a new node to the set. Only after calling the `SaveChangesAsync` the added objects will be transferred to the database.
+    /// </summary>
     public void Add(Dictionary<string, object> node)
     {
-        if (!Nodes.Any())
-        {
-            //e.g. UNWIND $people as person_0
-            CreationCypherBuilder.AppendLine($"UNWIND ${Key} as {UnwindVariable}");
-        }
-        Nodes = Nodes.Append(node.NormalizeValuesForNeo4j());
-        CreateCommand.Add(node);
+        NewNode ??= new(Label);
+        NewNodes = NewNodes.Append(node.NormalizeValuesForNeo4j());
     }
+    /// <summary>
+    /// This method anonymously add a collection of nodes to the set. Only after calling the `SaveChangesAsync` the added objects will be transferred to the database.
+    /// </summary>
     public void AddRange(IEnumerable<Dictionary<string, object>> nodes)
     {
         foreach (var node in nodes) Add(node);
@@ -73,11 +90,15 @@ public class NodeSet : INodeSet
     }
     public void Reset()
     {
-        Nodes = [];
-        CreateCommand.Reset();
+        MergeNodes = [];
+        NewNodes = [];
+        MergeNode = null;
+        NewNode = null;
+        CreationCypherBuilder.Clear();
     }
     public void BuildCypher()
     {
-        CreateCommand.GenerateCypher(Label);
+        MergeNode?.Merge(CreationCypherBuilder, $"${Name}_merges", NodeSetIndex);
+        NewNode?.Create(CreationCypherBuilder, $"${Name}_creates", NodeSetIndex);
     }
 }

@@ -9,6 +9,8 @@ public class PersonNodeConfigurations : INodeConfiguration<Person>
 {
     public void Configure(NodeTypeBuilder<Person> builder)
     {
+        builder.HasIdentifier(x => x.Id);
+        builder.HasRelationWithSingle(x => x.Address, "LIVES_IN", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.MoviesAsActor, "ACTED_IN", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.MoviesAsDirector, "DIRECTED", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.Friends, "FRIENDS_WITH", RelationDirection.Out)
