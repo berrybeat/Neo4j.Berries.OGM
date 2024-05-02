@@ -8,7 +8,7 @@ public class OGMConfigurationBuilder
     internal bool _EnforceIdentifiers { get; private set; } = false;
 
     /// <summary>
-    /// Reads the INodeConfiguration<> implementations from the given assemblies
+    /// Reads the INodeConfiguration implementations from the given assemblies
     /// </summary>
     /// <param name="assemblies">The assemblies to read the configurations from</param>
     public OGMConfigurationBuilder ReadAssemblies(params Assembly[] assemblies)
