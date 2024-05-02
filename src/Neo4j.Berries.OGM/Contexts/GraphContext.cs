@@ -53,21 +53,6 @@ public abstract class GraphContext
         NodeSets = NodeSets.Append(nodeSet);
         return nodeSet;
     }
-    /// <summary>
-    /// Creates a new NodeSet with the given label and configuration
-    /// </summary>
-    /// <param name="label">The label of the anonymous node</param>
-    /// <param name="builder">The configuration builder for the anonymous node</param>
-    /// <returns>The created NodeSet</returns>
-    /// <remarks>IMPORTANT: The anonymous method makes the code vulnerable against cypher injection.</remarks>
-    public NodeSet Anonymous(string label, Action<NodeConfigurationBuilder> builder)
-    {
-        var configBuilder = new NodeConfigurationBuilder();
-        builder(configBuilder);
-        var nodeSet = new NodeSet(label, configBuilder.NodeConfiguration, NodeSets.Count(), Database, CypherBuilder);
-        NodeSets = NodeSets.Append(nodeSet);
-        return nodeSet;
-    }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {

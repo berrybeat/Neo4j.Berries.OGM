@@ -18,8 +18,12 @@ internal class Neo4jSingletonContext
     public Neo4jSingletonContext(OGMConfigurationBuilder builder)
     {
         _assemblies = builder.Assemblies;
-        EnforceIdentifiers = builder._EnforceIdentifiers;
+        EnforceIdentifiers = builder.EnforceIdentifiers;
         ParseAssemblyForConfigurations();
+        foreach (var config in builder.NodeSetConfigurations)
+        {
+            Configs[config.Key] = config.Value;
+        }
     }
     private void ParseAssemblyForConfigurations()
     {

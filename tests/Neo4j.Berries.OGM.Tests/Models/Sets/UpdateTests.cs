@@ -265,10 +265,7 @@ public class UpdateTests : TestBase
     [Fact]
     public void Should_Connect_Node_Anonymously()
     {
-        var anonymous = TestGraphContext.Anonymous("Movie", builder =>
-        {
-            builder.HasRelation("Actors", "Person", "ACTED_IN", RelationDirection.In);
-        });
+        var anonymous = TestGraphContext.Anonymous("Movie");
         anonymous
             .Match(
                 x => x.Where("Id", TestMovieNode.Id)
