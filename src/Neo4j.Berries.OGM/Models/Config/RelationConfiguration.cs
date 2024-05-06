@@ -11,9 +11,7 @@ where TEnd : class
     public RelationDirection Direction { get; } = direction;
     private MergeConfiguration<TEnd> EndNodeMergeConfig { get; } = new MergeConfiguration<TEnd>();
     public IEnumerable<string> EndNodeMergeProperties => EndNodeMergeConfig.IncludedProperties;
-    public Type EndNodeType => typeof(TEnd);
-
-    public string EndNodeLabel { get; } = null;
+    public string EndNodeLabel { get; } = typeof(TEnd).Name;
 
     public MergeConfiguration<TEnd> OnMerge()
     {
@@ -25,7 +23,6 @@ public class RelationConfiguration(string endNodeLabel, string label, RelationDi
 {
     public string Label => label;
     public RelationDirection Direction => direction;
-    public Type EndNodeType => null;
     public string EndNodeLabel => endNodeLabel;
     public IEnumerable<string> EndNodeMergeProperties => [];
 }

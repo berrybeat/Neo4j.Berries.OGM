@@ -56,7 +56,7 @@ internal class Node(string label, int depth = 0)
             if (node is null)
             {
                 var relationConfig = NodeConfig.Relations[relation.Key];
-                var endNodeLabel = relationConfig.EndNodeLabel ?? relationConfig.EndNodeType.Name;
+                var endNodeLabel = relationConfig.EndNodeLabel;
                 node = new Node(endNodeLabel, depth + 1);
                 SingleRelations.Add(relation.Key, node);
             }
@@ -77,7 +77,7 @@ internal class Node(string label, int depth = 0)
             if (node is null)
             {
                 var relationConfig = NodeConfig.Relations[relation.Key];
-                var endNodeLabel = relationConfig.EndNodeLabel ?? relationConfig.EndNodeType.Name;
+                var endNodeLabel = relationConfig.EndNodeLabel;
                 node = new Node(endNodeLabel, depth + 1);
                 MultipleRelations.Add(relation.Key, node);
             }

@@ -265,7 +265,7 @@ public class NodeQuery
     protected StringBuilder ConnectionBuilder(IRelationConfiguration relationConfiguration, Eloquent eloquent)
     {
         var cloneBuilder = CypherBuilder.Clone();
-        var endNodeLabel = string.IsNullOrEmpty(relationConfiguration.EndNodeLabel) ? relationConfiguration.EndNodeType.Name : relationConfiguration.EndNodeLabel;
+        var endNodeLabel = relationConfiguration.EndNodeLabel;
         var match = new MatchModel(endNodeLabel, eloquent, Matches.Count).ToCypher(cloneBuilder);
         Matches.Add(match);
         return cloneBuilder;

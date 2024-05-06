@@ -21,19 +21,19 @@ public class Neo4jSingletonContextTests : TestBase
         movieNodeConfig.Relations.Should().HaveCount(4);
         movieNodeConfig.Relations[nameof(Movie.Actors)].Label.Should().Be("ACTED_IN");
         movieNodeConfig.Relations[nameof(Movie.Actors)].Direction.Should().Be(RelationDirection.In);
-        movieNodeConfig.Relations[nameof(Movie.Actors)].EndNodeType.Should().Be(typeof(Person));
+        movieNodeConfig.Relations[nameof(Movie.Actors)].EndNodeLabel.Should().Be("Person");
         movieNodeConfig.Relations[nameof(Movie.Director)].Label.Should().Be("DIRECTED");
         movieNodeConfig.Relations[nameof(Movie.Director)].Direction.Should().Be(RelationDirection.In);
-        movieNodeConfig.Relations[nameof(Movie.Director)].EndNodeType.Should().Be(typeof(Person));
+        movieNodeConfig.Relations[nameof(Movie.Director)].EndNodeLabel.Should().Be("Person");
 
         var personNodeConfig = Neo4jSingletonContext.Configs[nameof(Person)];
         personNodeConfig.Relations[nameof(Person.MoviesAsActor)].Label.Should().Be("ACTED_IN");
         personNodeConfig.Relations[nameof(Person.MoviesAsActor)].Direction.Should().Be(RelationDirection.Out);
         personNodeConfig.Relations[nameof(Person.MoviesAsActor)].Label.Should().Be("ACTED_IN");
-        personNodeConfig.Relations[nameof(Person.MoviesAsActor)].EndNodeType.Should().Be(typeof(Movie));
+        personNodeConfig.Relations[nameof(Person.MoviesAsActor)].EndNodeLabel.Should().Be("Movie");
 
         personNodeConfig.Relations[nameof(Person.MoviesAsDirector)].Direction.Should().Be(RelationDirection.Out);
-        personNodeConfig.Relations[nameof(Person.MoviesAsDirector)].EndNodeType.Should().Be(typeof(Movie));
+        personNodeConfig.Relations[nameof(Person.MoviesAsDirector)].EndNodeLabel.Should().Be("Movie");
     }
     [Fact]
     public void Should_Add_Relations_In_Properties_Map_Exclusion_List()
