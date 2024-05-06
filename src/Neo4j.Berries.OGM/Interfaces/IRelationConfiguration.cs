@@ -6,6 +6,6 @@ public interface IRelationConfiguration
 {
     string Label { get; }
     RelationDirection Direction { get; }
-    string EndNodeLabel { get; }
+    string[] EndNodeLabels { get; }
     IEnumerable<string> EndNodeMergeProperties { get; }
 }

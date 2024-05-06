@@ -14,7 +14,7 @@ internal class MatchRelationModel(IMatch startMatch, IRelationConfiguration rela
     public string EndNodeAlias => $"l{index}";
     public string RelationAlias => $"r{index}";
 
-    public string EndNodeLabel { get; } = relationConfig.EndNodeLabel;
+    public string EndNodeLabel { get; } = relationConfig.EndNodeLabels[0];
 
     public IMatch ToCypher(StringBuilder cypherBuilder)
     {

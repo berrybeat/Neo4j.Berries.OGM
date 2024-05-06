@@ -135,7 +135,7 @@ public static class ObjectUtils
         foreach (var relation in relations)
         {
             var relationConfig = config.Relations[relation];
-            var nodeLabel = relationConfig.EndNodeLabel;
+            var nodeLabel = relationConfig.EndNodeLabels[0];
             Neo4jSingletonContext.Configs.TryGetValue(nodeLabel, out var endNodeConfig);
             if (input[relation].IsDictionary())
             {

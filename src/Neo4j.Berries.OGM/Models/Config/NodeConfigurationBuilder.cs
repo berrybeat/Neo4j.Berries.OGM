@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Neo4j.Berries.OGM.Enums;
 
 namespace Neo4j.Berries.OGM.Models.Config;
@@ -43,26 +44,53 @@ public class NodeConfigurationBuilder
     /// <summary>
     /// Adds a relation configuration to the NodeConfiguration where the property name is the same as the target node label
     /// </summary>
-    /// <param name="TargetNodeLabel">The label of the target node</param>
-    /// <param name="RelationLabel">The label of the relation</param>
-    /// <param name="Direction">The direction of the relation</param>
-    public NodeConfigurationBuilder HasRelation(string TargetNodeLabel, string RelationLabel, RelationDirection Direction)
+    /// <param name="targetNodeLabel">The labels of the target nodes</param>
+    /// <param name="relationLabel">The label of the relation</param>
+    /// <param name="direction">The direction of the relation</param>
+    public NodeConfigurationBuilder HasRelation(string targetNodeLabel, string relationLabel, RelationDirection direction)
     {
-        this.HasRelation(TargetNodeLabel, TargetNodeLabel, RelationLabel, Direction);
+        HasRelation([targetNodeLabel], relationLabel, direction);
         return this;
     }
+
+    /// <summary>
+    /// Adds a relation configuration to the NodeConfiguration where the property name is the same as the target node label
+    /// </summary>
+    /// <param name="targetNodeLabels">The labels of the target nodes</param>
+    /// <param name="relationLabel">The label of the relation</param>
+    /// <param name="direction">The direction of the relation</param>
+    public NodeConfigurationBuilder HasRelation(string[] targetNodeLabels, string relationLabel, RelationDirection direction)
+    {
+        HasRelation(targetNodeLabels[0], targetNodeLabels, relationLabel, direction);
+        return this;
+    }
+
     /// <summary>
     /// Adds a relation configuration to the NodeConfiguration
     /// </summary>
-    /// <param name="Property">The property name which this configuration is for</param>
-    /// <param name="TargetNodeLabel">The label of the target node</param>
-    /// <param name="RelationLabel">The label of the relation</param>
-    /// <param name="Direction">The direction of the relation</param>
+    /// <param name="property">The property name which this configuration is for</param>
+    /// <param name="targetNodeLabel">The labels of the target nodes</param>
+    /// <param name="relationLabel">The label of the relation</param>
+    /// <param name="direction">The direction of the relation</param>
     /// <exception cref="InvalidOperationException">If the property is already included</exception>
-    public NodeConfigurationBuilder HasRelation(string Property, string TargetNodeLabel, string RelationLabel, RelationDirection Direction)
+    public NodeConfigurationBuilder HasRelation(string property, string targetNodeLabel, string relationLabel, RelationDirection direction)
     {
-        NodeConfiguration.Relations[Property] = new RelationConfiguration(TargetNodeLabel, RelationLabel, Direction);
-        ExcludeProperties(Property);
+        HasRelation(property, [targetNodeLabel], relationLabel, direction);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a relation configuration to the NodeConfiguration
+    /// </summary>
+    /// <param name="property">The property name which this configuration is for</param>
+    /// <param name="targetNodeLabels">The labels of the target nodes</param>
+    /// <param name="relationLabel">The label of the relation</param>
+    /// <param name="direction">The direction of the relation</param>
+    /// <exception cref="InvalidOperationException">If the property is already included</exception>
+    public NodeConfigurationBuilder HasRelation(string property, string[] targetNodeLabels, string relationLabel, RelationDirection direction)
+    {
+        NodeConfiguration.Relations[property] = new RelationConfiguration(targetNodeLabels, relationLabel, direction);
+        ExcludeProperties(property);
         return this;
     }
 
