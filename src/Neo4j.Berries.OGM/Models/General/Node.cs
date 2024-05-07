@@ -159,9 +159,7 @@ internal class Node(string label, int depth = 0)
     {
         cypherBuilder.Append($"CREATE ({alias}:{label})");
         var properties = Identifiers.Concat(Properties);
-        cypherBuilder.Append(" SET ");
-        cypherBuilder.Append(string.Join(", ", properties.Select(x => $"{alias}.{x}={variable}.{x}")));
-        cypherBuilder.AppendLine();
+        AppendWithSetProperties(cypherBuilder, alias, variable, properties);
     }
     private void MergeProperties(string alias, string variable, StringBuilder cypherBuilder)
     {
@@ -173,10 +171,14 @@ internal class Node(string label, int depth = 0)
             cypherBuilder.Append('}');
         }
         cypherBuilder.Append(')');
-        if (Properties.Count > 0)
+        AppendWithSetProperties(cypherBuilder, alias, variable, Properties);
+    }
+    private static void AppendWithSetProperties(StringBuilder cypherBuilder, string alias, string variable, IEnumerable<string> properties)
+    {
+        if (properties.Any())
         {
             cypherBuilder.Append(" SET ");
-            cypherBuilder.Append(string.Join(", ", Properties.Select(x => $"{alias}.{x}={variable}.{x}")));
+            cypherBuilder.Append(string.Join(", ", properties.Select(x => $"{alias}.{x}={variable}.{x}")));
         }
         cypherBuilder.AppendLine();
     }
