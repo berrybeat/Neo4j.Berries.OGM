@@ -45,45 +45,37 @@ internal class Node(string label, int depth = 0)
 
     private void AppendSingleRelations(IEnumerable<Dictionary<string, object>> nodes)
     {
-        var relations = nodes
-            .SelectMany(x => x)
-            .Where(x => x.Value != null)
-            .Where(x => NodeConfig.Relations.ContainsKey(x.Key))
-            .Where(x => x.Value.IsDictionary());
+        var relations = nodes.GetRelations(NodeConfig, x => x.IsDictionary());
         foreach (var relation in relations)
         {
-            SingleRelations.TryGetValue(relation.Key, out Node node);
-            if (node is null)
-            {
-                var relationConfig = NodeConfig.Relations[relation.Key];
-                var endNodeLabel = relationConfig.EndNodeLabels[0];
-                node = new Node(endNodeLabel, depth + 1);
-                SingleRelations.Add(relation.Key, node);
-            }
+            var node = TryAddRelation(relation.Key, SingleRelations);
             node.Consider([relation.Value as Dictionary<string, object>]);
         }
     }
 
     private void AppendMultipleRelations(IEnumerable<Dictionary<string, object>> nodes)
     {
-        var relations = nodes
-            .SelectMany(x => x)
-            .Where(x => x.Value != null)
-            .Where(x => NodeConfig.Relations.ContainsKey(x.Key))
-            .Where(x => x.Value.IsCollection());
+        var relations = nodes.GetRelations(NodeConfig, x => x.IsCollection());
         foreach (var relation in relations)
         {
-            MultipleRelations.TryGetValue(relation.Key, out Node node);
-            if (node is null)
-            {
-                var relationConfig = NodeConfig.Relations[relation.Key];
-                var endNodeLabel = relationConfig.EndNodeLabels[0];
-                node = new Node(endNodeLabel, depth + 1);
-                MultipleRelations.Add(relation.Key, node);
-            }
+            var node = TryAddRelation(relation.Key, MultipleRelations);
             node.Consider((relation.Value as IEnumerable<Dictionary<string, object>>).ToArray());
         }
     }
+
+    private Node TryAddRelation(string key, Dictionary<string, Node> nodeCollection)
+    {
+        nodeCollection.TryGetValue(key, out Node node);
+        if (node is null)
+        {
+            var relationConfig = NodeConfig.Relations[key];
+            var endNodeLabel = relationConfig.EndNodeLabels[0];
+            node = new Node(endNodeLabel, depth + 1);
+            nodeCollection.Add(key, node);
+        }
+        return node;
+    }
+
     public void Create(StringBuilder cypherBuilder, string collection, int nodeSetIndex)
     {
         var alias = ComputeAlias("c", nodeSetIndex, 0);
