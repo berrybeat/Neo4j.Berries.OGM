@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Security.Cryptography;
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
@@ -82,25 +84,7 @@ internal class Node(string label, int depth = 0)
         var unwindVariable = ComputeAlias("cuv", nodeSetIndex, 0);
         cypherBuilder.AppendLine($"UNWIND {collection} AS {unwindVariable}");
         CreateProperties(alias, unwindVariable, cypherBuilder);
-        foreach (var relation in MultipleRelations)
-        {
-            var index = MultipleRelations.Keys.ToList().IndexOf(relation.Key);
-            var variable = ComputeAlias("muv", nodeSetIndex, index, depth + 1);
-            cypherBuilder.AppendLine($"FOREACH ({variable} IN {unwindVariable}.{relation.Key} |");
-            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, variable, nodeSetIndex, index);
-            var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"CREATE ({alias}){relationConfig.Format()}({targetNodeAlias})");
-            cypherBuilder.AppendLine(")");
-        }
-        foreach (var relation in SingleRelations)
-        {
-            var index = SingleRelations.Keys.ToList().IndexOf(relation.Key);
-            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {unwindVariable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
-            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{unwindVariable}.{relation.Key}", nodeSetIndex, index);
-            var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"CREATE ({alias}){relationConfig.Format()}({targetNodeAlias})");
-            cypherBuilder.AppendLine(")");
-        }
+        ProcessRelations(cypherBuilder, nodeSetIndex, alias, unwindVariable, false);
     }
 
     public void Merge(StringBuilder cypherBuilder, string collection, int nodeSetIndex)
@@ -109,6 +93,11 @@ internal class Node(string label, int depth = 0)
         var unwindVariable = ComputeAlias("muv", nodeSetIndex, 0);
         cypherBuilder.AppendLine($"UNWIND {collection} AS {unwindVariable}");
         MergeProperties(alias, unwindVariable, cypherBuilder);
+        ProcessRelations(cypherBuilder, nodeSetIndex, alias, unwindVariable, true);
+    }
+    private void ProcessRelations(StringBuilder cypherBuilder, int nodeSetIndex, string alias, string unwindVariable, bool shouldMerge)
+    {
+        var relationAction = shouldMerge ? "MERGE" : "CREATE";
         foreach (var relation in MultipleRelations)
         {
             var index = MultipleRelations.Keys.ToList().IndexOf(relation.Key);
@@ -116,7 +105,7 @@ internal class Node(string label, int depth = 0)
             cypherBuilder.AppendLine($"FOREACH ({variable} IN {unwindVariable}.{relation.Key} |");
             var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, variable, nodeSetIndex, index);
             var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
             cypherBuilder.AppendLine(")");
         }
         foreach (var relation in SingleRelations)
@@ -125,7 +114,7 @@ internal class Node(string label, int depth = 0)
             cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {unwindVariable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
             var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{unwindVariable}.{relation.Key}", nodeSetIndex, index);
             var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
             cypherBuilder.AppendLine(")");
         }
     }
