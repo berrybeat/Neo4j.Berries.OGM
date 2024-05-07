@@ -8,7 +8,7 @@ namespace Neo4j.Berries.OGM.Models.Sets;
 internal class Node(string label, int depth = 0)
 {
     public List<string> Identifiers { get; set; } = [];
-    public List<string> Properties { get; set; } = []; //These should be merged, and if there is a parent, it will merge a relation too.
+    public List<string> Properties { get; set; } = []; //These should be merged. If there is a parent, it will merge a relation too.
     public Dictionary<string, Node> SingleRelations { get; set; } = [];
     public Dictionary<string, Node> MultipleRelations { get; set; } = [];
     public NodeConfiguration NodeConfig
