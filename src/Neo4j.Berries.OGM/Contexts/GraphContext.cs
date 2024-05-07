@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Neo4j.Berries.OGM.Interfaces;
-using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Sets;
 
 namespace Neo4j.Berries.OGM.Contexts;
