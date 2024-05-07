@@ -1,8 +1,10 @@
+using System.Runtime.Versioning;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Enums;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
+using Neo4j.Berries.OGM.Tests.Mocks.Models.Resources;
 using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Tests.Utils;
@@ -196,7 +198,52 @@ public class ObjectUtilsTests
         director.Should().ContainKey("Id");
         director.Should().OnlyContain(x => x.Key == "Id");
     }
+    [Fact]
+    public void Should_Group_An_Interface_List_By_Different_Types_In_The_List()
+    {
+        var person = new Person
+        {
+            Id = Guid.NewGuid(),
+            FirstName = "Keanu",
+            LastName = "Reeves",
+            Resources = [
+                new Room
+                {
+                    Number = "1234",
+                },
+                new Car
+                {
+                    LicensePlate = "ABC123",
+                    Brand = "Toyota",
+                    Model = "Corolla",
+                }
+            ]
+        };
+        _ = new Neo4jSingletonContext(GetType().Assembly);
+        var result = person.ToDictionary(Neo4jSingletonContext.Configs);
+
+        result.Should().ContainKey("Resources");
+        result["Resources"].Should().BeOfType<Dictionary<string, List<Dictionary<string, object>>>>();
+        var resources = result["Resources"] as Dictionary<string, List<Dictionary<string, object>>>;
+        resources.Should().HaveCount(2);
+        resources.Should().ContainKey("Car");
+        resources.Should().ContainKey("Room");
+        resources["Room"].Should().HaveCount(1);
+        resources["Car"].Should().HaveCount(1);
+
+        resources["Room"].First().Should().ContainKey("Number");
+        resources["Room"].First()["Number"].Should().Be("1234");
+
+        resources["Car"].First().Should().ContainKey("LicensePlate");
+        resources["Car"].First().Should().ContainKey("Brand");
+        resources["Car"].First().Should().ContainKey("Model");
+
+        resources["Car"].First()["LicensePlate"].Should().Be("ABC123");
+        resources["Car"].First()["Brand"].Should().Be("Toyota");
+        resources["Car"].First()["Model"].Should().Be("Corolla");
+    }
     #endregion
+
     #region NormalizeValuesForNeo4j
     [Fact]
     public void Should_Convert_Guid_To_String()
@@ -228,6 +275,7 @@ public class ObjectUtilsTests
         director.Should().NotContainKey("BirthDate");
     }
     #endregion
+
     #region ValidateIdentifiers
     [Fact]
     public void Should_Throw_Exception_If_No_Identifier_Found_On_Root_Node()

@@ -2,11 +2,8 @@ using System.Reflection;
 using System.Collections;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
-using System.Reflection.Metadata;
-using Microsoft.Extensions.DependencyInjection;
-using System.Security.Cryptography.X509Certificates;
-using Neo4j.Driver;
 using Neo4j.Berries.OGM.Contexts;
+using Microsoft.VisualBasic;
 
 namespace Neo4j.Berries.OGM.Utils;
 
@@ -24,6 +21,20 @@ public static class ObjectUtils
     internal static bool IsDictionary(this object input)
     {
         return input.GetType().IsAssignableTo(typeof(IDictionary));
+    }
+    private static bool IsListOfInterfaces(this List<object> inputType)
+    {
+        var interfaces = inputType
+            .SelectMany(x => x.GetType().GetInterfaces())
+            .Distinct();
+        return interfaces
+            .Any(
+                x =>
+                    inputType
+                        .GetType()
+                        .GetGenericArguments()
+                        .Any(y => y.IsAssignableFrom(x))
+                );
     }
     /// <summary>
     /// Checks if the object is a collection, but being a dictionary collection is excluded.
@@ -81,12 +92,30 @@ public static class ObjectUtils
                 var list = ((IEnumerable)value).Cast<object>().ToList();
                 if (!nodeConfig.Relations.TryGetValue(prop.Name, out relation))
                     continue;
-                var parsedList = list == null || list.Count == 0 ? null :
-                    list
-                        .Select(
-                            x => x.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1)
-                        ).Where(x => x != null);
-                obj[prop.Name] = parsedList?.Any() == false ? null : parsedList;
+                if (list.IsListOfInterfaces())
+                {
+                    obj[prop.Name] = new Dictionary<string, List<Dictionary<string, object>>>();
+                    foreach (var item in list)
+                    {
+                        var record = obj[prop.Name] as Dictionary<string, List<Dictionary<string, object>>>;
+                        var typeName = item.GetType().Name;
+                        if (!record.ContainsKey(item.GetType().Name))
+                        {
+                            record[typeName] = [];
+                        }
+                        record[typeName]
+                            .Add(item.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1));
+                    }
+                }
+                else
+                {
+                    var parsedList = list == null || list.Count == 0 ? null :
+                        list
+                            .Select(
+                                x => x.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1)
+                            ).Where(x => x != null);
+                    obj[prop.Name] = parsedList?.Any() == false ? null : parsedList;
+                }
                 continue;
             }
             if (nodeConfig.Relations.TryGetValue(prop.Name, out relation) && value is not null)
