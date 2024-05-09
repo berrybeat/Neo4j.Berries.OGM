@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.Tasks.Dataflow;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
@@ -11,6 +12,8 @@ internal class Node(string label, int depth = 0)
     public List<string> Properties { get; set; } = []; //These should be merged. If there is a parent, it will merge a relation too.
     public Dictionary<string, Node> SingleRelations { get; set; } = [];
     public Dictionary<string, Node> MultipleRelations { get; set; } = [];
+    public Dictionary<string, Dictionary<string, Node>> GroupRelations { get; set; } = [];
+
     public NodeConfiguration NodeConfig
     {
         get
@@ -22,6 +25,7 @@ internal class Node(string label, int depth = 0)
     public Node Consider(IEnumerable<Dictionary<string, object>> nodes)
     {
         AppendProperties(nodes);
+        AppendGroupRelations(nodes);
         AppendSingleRelations(nodes);
         AppendMultipleRelations(nodes);
         return this;
@@ -43,9 +47,37 @@ internal class Node(string label, int depth = 0)
             throw new InvalidOperationException($"Identifiers are enforced but not provided in the data. Label: {label}");
     }
 
+    public void AppendGroupRelations(IEnumerable<Dictionary<string, object>> nodes)
+    {
+        var relations = nodes
+            .GetRelations(NodeConfig, x => x.IsDictionary())
+            .Where(x => NodeConfig.Relations[x.Key].EndNodeLabels.Length > 1);
+        if (relations.Any(x => (x.Value as Dictionary<string, object>).Any(y => y.Value.IsDictionary())))
+        {
+            throw new InvalidOperationException("Group items should be collections.");
+        }
+        foreach (var relation in relations)
+        {
+            var value = relation.Value as Dictionary<string, object>;
+            GroupRelations.TryGetValue(relation.Key, out Dictionary<string, Node> nodeCollection);
+            if (nodeCollection is null)
+            {
+                nodeCollection = [];
+                GroupRelations.Add(relation.Key, nodeCollection);
+            }
+            foreach (var member in value)
+            {
+                var node = TryAddRelation(relation.Key, nodeCollection, member.Key);
+                node.Consider((member.Value as IEnumerable<Dictionary<string, object>>).ToArray());
+            }
+        }
+    }
+
     private void AppendSingleRelations(IEnumerable<Dictionary<string, object>> nodes)
     {
-        var relations = nodes.GetRelations(NodeConfig, x => x.IsDictionary());
+        var relations = nodes
+            .GetRelations(NodeConfig, x => x.IsDictionary())
+            .Where(x => !GroupRelations.ContainsKey(x.Key));
         foreach (var relation in relations)
         {
             var node = TryAddRelation(relation.Key, SingleRelations);
@@ -65,13 +97,22 @@ internal class Node(string label, int depth = 0)
 
     private Node TryAddRelation(string key, Dictionary<string, Node> nodeCollection)
     {
-        nodeCollection.TryGetValue(key, out Node node);
+        return TryAddRelation(key, nodeCollection, null);
+    }
+
+    private Node TryAddRelation(string key, Dictionary<string, Node> nodeCollection, string memberKey)
+    {
+        nodeCollection.TryGetValue(memberKey ?? key, out Node node);
         if (node is null)
         {
             var relationConfig = NodeConfig.Relations[key];
-            var endNodeLabel = relationConfig.EndNodeLabels[0];
+            string endNodeLabel = relationConfig.EndNodeLabels[0];
+            if (!string.IsNullOrEmpty(memberKey))
+            {
+                endNodeLabel = relationConfig.EndNodeLabels.First(x => x.Equals(memberKey));
+            }
             node = new Node(endNodeLabel, depth + 1);
-            nodeCollection.Add(key, node);
+            nodeCollection.Add(memberKey ?? key, node);
         }
         return node;
     }
@@ -115,6 +156,21 @@ internal class Node(string label, int depth = 0)
             cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
             cypherBuilder.AppendLine(")");
         }
+        foreach (var relation in GroupRelations)
+        {
+            var relationIndex = GroupRelations.Keys.ToList().IndexOf(relation.Key);
+            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {unwindVariable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
+            foreach (var member in relation.Value)
+            {
+                var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, relationIndex, depth + 1);
+                cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {unwindVariable}.{relation.Key}.{member.Key} |");
+                var targetNodeAlias = member.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
+                var relationConfig = NodeConfig.Relations[relation.Key];
+                cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+                cypherBuilder.AppendLine(")");
+            }
+            cypherBuilder.AppendLine(")");
+        }
     }
     public string MergeRelations(StringBuilder cypherBuilder, string variable, int nodeSetIndex, int index)
     {
@@ -137,6 +193,21 @@ internal class Node(string label, int depth = 0)
             var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{variable}.{relation.Key}", nodeSetIndex, relationIndex);
             var relationConfig = NodeConfig.Relations[relation.Key];
             cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            cypherBuilder.AppendLine(")");
+        }
+        foreach (var relation in GroupRelations)
+        {
+            var relationIndex = GroupRelations.Keys.ToList().IndexOf(relation.Key);
+            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {variable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
+            foreach (var member in relation.Value)
+            {
+                var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, relationIndex, depth + 1);
+                cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key}.{member.Key} |");
+                var targetNodeAlias = member.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
+                var relationConfig = NodeConfig.Relations[relation.Key];
+                cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
+                cypherBuilder.AppendLine(")");
+            }
             cypherBuilder.AppendLine(")");
         }
         return alias;
