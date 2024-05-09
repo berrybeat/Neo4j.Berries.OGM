@@ -2,8 +2,6 @@ using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using Neo4j.Berries.OGM.Utils;
 using FluentAssertions;
-using Neo4j.Driver;
-
 
 namespace Neo4j.Berries.OGM.Tests.Contexts;
 
