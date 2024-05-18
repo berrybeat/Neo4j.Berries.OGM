@@ -8,7 +8,7 @@ public class NodeTypeBuilder<TNode>
 where TNode : class
 {
     private static string TypeName => typeof(TNode).Name;
-    private NodeConfiguration Config
+    private static NodeConfiguration Config
     {
         get
         {

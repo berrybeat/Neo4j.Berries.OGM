@@ -74,6 +74,79 @@ public class NodeSetTests : TestBase
         directorRelation.Properties.Should().HaveCount(1);
         directorRelation.Properties.Should().Contain("Name");
     }
+
+    [Fact]
+    public void Should_Add_Into_Group_Relations()
+    {
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "LastName", "Doe" },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new List<Dictionary<string, object>> {
+                            new () { { "LicensePlate", "AB123" } },
+                            new () { { "LicensePlate", "ES123" } },
+                        }
+                    }
+                }}
+            }
+        ]);
+        node.GroupRelations.Should().HaveCount(1);
+        node.GroupRelations["Resources"].Should().HaveCount(2);
+        node.GroupRelations["Resources"].Should().ContainKey("Room");
+        node.GroupRelations["Resources"].Should().ContainKey("Car");
+
+        var room = node.GroupRelations["Resources"]["Room"];
+        room.Identifiers.Should().HaveCount(1);
+        room.Identifiers.Should().Contain("Number");
+
+        var car = node.GroupRelations["Resources"]["Car"];
+        car.Identifiers.Should().HaveCount(1);
+        car.Identifiers.Should().Contain("LicensePlate");
+
+        node.SingleRelations.Should().HaveCount(0);
+    }
+    [Fact]
+    public void Should_Throw_InvalidOperationException_When_Some_Group_Items_Are_Not_Collections()
+    {
+        var node = new Node("Person");
+        var act = () => node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "LastName", "Doe" },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new Dictionary<string, object> {
+                            { "LicensePlate", "AB123" },
+                            { "Brand", "BMW" }
+                        }
+                    }
+                }}
+            }
+        ]);
+        act.Should().ThrowExactly<InvalidOperationException>().WithMessage("Group items should be collections.");
+    }
+
     [Fact]
     public void Should_Create_A_Simple_Merge()
     {
@@ -355,5 +428,49 @@ public class NodeSetTests : TestBase
             new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" }, { "LastName", "Doe" } },
         ]);
         act.Should().ThrowExactly<InvalidOperationException>().WithMessage("Identifiers are enforced but not provided in the data. Label: Person");
+    }
+
+    [Fact]
+    public void Should_Create_Cypher_For_Group_Relations() {
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new List<Dictionary<string, object>> {
+                            new () { { "LicensePlate", "AB123" }, { "Brand", "BMW" } },
+                            new () { { "LicensePlate", "ES123" } },
+                        }
+                    }
+                }}
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        sut.Trim().Should().Be("""
+        UNWIND $people AS muv_0
+        MERGE (m_0:Person {Id: muv_0.Id}) SET m_0.FirstName=muv_0.FirstName
+        FOREACH (ignored IN CASE WHEN muv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
+        FOREACH (muv_0_1_0 IN muv_0.Resources.Room |
+        MERGE (m_0_1_0:Room {Number: muv_0_1_0.Number})
+        MERGE (m_0)-[:USES]->(m_0_1_0)
+        )
+        FOREACH (muv_0_1_0 IN muv_0.Resources.Car |
+        MERGE (m_0_1_0:Car {LicensePlate: muv_0_1_0.LicensePlate}) SET m_0_1_0.Brand=muv_0_1_0.Brand
+        MERGE (m_0)-[:USES]->(m_0_1_0)
+        )
+        )
+        """);
     }
 }

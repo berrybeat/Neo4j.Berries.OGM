@@ -52,7 +52,7 @@ public class NodeConfigurationBuilderTests
         sut.NodeConfiguration.Relations.Should().ContainKey("Actor");
         sut.NodeConfiguration.Relations["Actor"].Direction.Should().Be(RelationDirection.Out);
         sut.NodeConfiguration.Relations["Actor"].Label.Should().Be("ACTED_IN");
-        sut.NodeConfiguration.Relations["Actor"].EndNodeLabel.Should().Be("Actor");
+        sut.NodeConfiguration.Relations["Actor"].EndNodeLabels.Should().Contain("Actor");
     }
 
     [Fact]

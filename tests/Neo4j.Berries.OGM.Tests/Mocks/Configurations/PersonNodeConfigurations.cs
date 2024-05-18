@@ -1,3 +1,4 @@
+using FluentAssertions.Equivalency.Tracing;
 using Neo4j.Berries.OGM.Enums;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
@@ -13,6 +14,7 @@ public class PersonNodeConfigurations : INodeConfiguration<Person>
         builder.HasRelationWithSingle(x => x.Address, "LIVES_IN", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.MoviesAsActor, "ACTED_IN", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.MoviesAsDirector, "DIRECTED", RelationDirection.Out);
+        builder.HasRelationWithMultiple(x => x.Resources, "USES", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.Friends, "FRIENDS_WITH", RelationDirection.Out)
             .OnMerge()
             .Include(x => x.Id)

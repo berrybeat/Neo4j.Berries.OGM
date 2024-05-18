@@ -2,8 +2,6 @@ using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using Neo4j.Berries.OGM.Utils;
 using FluentAssertions;
-using Neo4j.Driver;
-
 
 namespace Neo4j.Berries.OGM.Tests.Contexts;
 
@@ -280,6 +278,48 @@ public class GraphContextTests : TestBase
         friend.Age.Should().Be(person.Friends[0].Age);
         friend.FirstName.Should().BeNullOrEmpty();
         friend.LastName.Should().BeNullOrEmpty();
+    }
+
+    [Fact]
+    public void Should_Create_Anonymous_Node_With_Group_Relations()
+    {
+        var id = Guid.NewGuid();
+        TestGraphContext.Anonymous("Person")
+            .Merge(new() {
+                { "Id", id },
+                { "FirstName", "John" },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new List<Dictionary<string, object>> {
+                            new () { { "LicensePlate", "AB123" }, { "Brand", "BMW" } },
+                            new () { { "LicensePlate", "ES123" } },
+                        }
+                    }
+                }}
+            });
+        TestGraphContext.SaveChanges();
+        var records = TestGraphContext
+            .Database
+            .Session
+            .Run("MATCH(person:Person)-[:USES]->(r:Room) WHERE person.Id=$id return distinct person", new { id = id.ToString() })
+            .ToList();
+        records.Should().NotBeEmpty();
+        records.Should().HaveCount(1);
+
+        records = [.. TestGraphContext
+            .Database
+            .Session
+            .Run("MATCH(person:Person)-[:USES]->(c:Car) WHERE person.Id=$id return distinct person", new { id = id.ToString() })];
+        records.Should().NotBeEmpty();
+        records.Should().HaveCount(1);
     }
     [Fact]
     public void Should_Create_A_Movie_With_Empty_Object_For_Director_Without_Connecting_To_Anything()

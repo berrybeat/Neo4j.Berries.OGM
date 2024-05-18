@@ -5,7 +5,6 @@ using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Match;
 using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Utils;
-using Neo4j.Driver;
 namespace Neo4j.Berries.OGM.Models.Queries;
 
 public class NodeQuery<TNode> : NodeQuery
@@ -88,14 +87,6 @@ where TNode : class
     public async Task<List<TNode>> ToListAsync(CancellationToken cancellationToken = default)
     {
         return await ToListAsync<TNode>(cancellationToken);
-    }
-    private async Task<IEnumerable<TResult>> ExecuteWithMapAsync<TResult>(Func<IRecord, TResult> mapper, string cypher, CancellationToken cancellationToken = default)
-    {
-        return await InternalDatabaseContext.RunAsync(cypher, QueryParameters, mapper, cancellationToken);
-    }
-    private IEnumerable<TResult> ExecuteWithMap<TResult>(Func<IRecord, TResult> mapper, string cypher, CancellationToken cancellationToken = default)
-    {
-        return InternalDatabaseContext.Run(cypher, QueryParameters, mapper);
     }
     #endregion
 
