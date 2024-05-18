@@ -44,7 +44,13 @@ public static class ObjectUtils
             else if (item.Value is null) continue;
             if (item.Value.GetType().IsAssignableTo(typeof(IDictionary)))
             {
-                input[item.Key] = NormalizeValuesForNeo4j((Dictionary<string, object>)item.Value, true);
+                var dict = (Dictionary<string, object>)item.Value;
+                if (dict.Keys.Count == 0)
+                {
+                    input[item.Key] = null;
+                    continue;
+                }
+                input[item.Key] = NormalizeValuesForNeo4j(dict, true);
                 continue;
             }
             else if (item.Value.GetType().IsGenericType)
