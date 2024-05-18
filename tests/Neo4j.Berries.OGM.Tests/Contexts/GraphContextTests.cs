@@ -281,4 +281,23 @@ public class GraphContextTests : TestBase
         friend.FirstName.Should().BeNullOrEmpty();
         friend.LastName.Should().BeNullOrEmpty();
     }
+    [Fact]
+    public void Should_Create_A_Movie_With_Empty_Object_For_Director_Without_Connecting_To_Anything()
+    {
+        var id = Guid.NewGuid();
+        var movie = new Dictionary<string, object> {
+            { "Id", id },
+            { "Name", "Matrix" },
+            { "Director", new Dictionary<string, object>() }
+        };
+
+        TestGraphContext.Anonymous("Movie").Merge(movie);
+        TestGraphContext.SaveChanges();
+        var records = TestGraphContext
+            .Database
+            .Session
+            .Run("MATCH(director:Person)-[:DIRECTED]->(movie:Movie) WHERE movie.Id=$id return director", new { id = id.ToString() })
+            .ToList();
+        records.Select(x => x.Values).Should().BeEmpty();
+    }
 }
