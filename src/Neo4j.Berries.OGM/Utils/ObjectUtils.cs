@@ -149,36 +149,4 @@ public static class ObjectUtils
         }
         return obj;
     }
-    /// <summary>
-    /// Every relation in this case, must have at least one identifier.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when a relation does not have any identifier or the identifier's value is null</exception>
-    internal static void ValidateIdentifiers(this Dictionary<string, object> input, NodeConfiguration config, int iterations = 0, string label = null)
-    {
-        var configuredIdentifiers = input.Keys.Where(config.Identifiers.Contains);
-        if (!configuredIdentifiers.Any())
-        {
-            throw new InvalidOperationException($"No identifier found, recursion: {iterations}, node: {label ?? "Root"}");
-        }
-        var nullIdentifiers = configuredIdentifiers.ToDictionary(x => x, x => input[x]).Where(x => x.Value == null);
-        if (nullIdentifiers.Any())
-        {
-            var keys = nullIdentifiers.Select(x => x.Key);
-            throw new InvalidOperationException($"The following identifiers are null: {string.Join(", ", keys)}, Recursion: {iterations}, Node: {label ?? "Root"}");
-        }
-        var relations = input.Keys.Where(config.Relations.Keys.Contains);
-        foreach (var relation in relations)
-        {
-            var relationConfig = config.Relations[relation];
-            var nodeLabel = relationConfig.EndNodeLabels[0];
-            Neo4jSingletonContext.Configs.TryGetValue(nodeLabel, out var endNodeConfig);
-            if (input[relation].IsDictionary())
-            {
-                (input[relation] as Dictionary<string, object>).ValidateIdentifiers(endNodeConfig ?? new(), iterations + 1, nodeLabel);
-                continue;
-            }
-            (input[relation] as IEnumerable<Dictionary<string, object>>).ToList().ForEach(x => x.ValidateIdentifiers(endNodeConfig ?? new(), iterations + 1, nodeLabel));
-        }
-    }
-
 }

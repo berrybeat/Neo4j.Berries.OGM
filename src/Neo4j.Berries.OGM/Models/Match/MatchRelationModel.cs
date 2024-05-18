@@ -14,14 +14,18 @@ internal class MatchRelationModel(IMatch startMatch, IRelationConfiguration rela
     public string EndNodeAlias => $"l{index}";
     public string RelationAlias => $"r{index}";
 
-    public string EndNodeLabel { get; } = relationConfig.EndNodeLabels[0];
+    public string EndNodeLabel { get; } = relationConfig.EndNodeLabels.Length > 1 ? null : relationConfig.EndNodeLabels[0];
 
     public IMatch ToCypher(StringBuilder cypherBuilder)
     {
+        var endNodeStatement = string.Join(
+            ':',
+            new List<string>() { EndNodeAlias, EndNodeLabel }.Where(x => x != null)
+        );
         if (EndNodeEloquent != null)
-            cypherBuilder.AppendLine($"MATCH ({StartMatch.StartNodeAlias}){RelationConfig.Format(RelationAlias)}({EndNodeAlias}:{EndNodeLabel} WHERE {EndNodeEloquent.ToCypher(EndNodeAlias)})");
+            cypherBuilder.AppendLine($"MATCH ({StartMatch.StartNodeAlias}){RelationConfig.Format(RelationAlias)}({endNodeStatement} WHERE {EndNodeEloquent.ToCypher(EndNodeAlias)})");
         else
-            cypherBuilder.AppendLine($"MATCH ({StartMatch.StartNodeAlias}){RelationConfig.Format(RelationAlias)}({EndNodeAlias}:{EndNodeLabel})");
+            cypherBuilder.AppendLine($"MATCH ({StartMatch.StartNodeAlias}){RelationConfig.Format(RelationAlias)}({endNodeStatement})");
         return this;
     }
     public Dictionary<string, object> GetParameters()
@@ -31,4 +35,5 @@ internal class MatchRelationModel(IMatch startMatch, IRelationConfiguration rela
 }
 
 internal class MatchRelationModel<TEndNode>(IMatch startMatch, IRelationConfiguration relationConfig, Eloquent<TEndNode> eloquent, int index) : MatchRelationModel(startMatch, relationConfig, eloquent, index)
-where TEndNode : class { }
+where TEndNode : class
+{ }

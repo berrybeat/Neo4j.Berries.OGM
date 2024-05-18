@@ -24,4 +24,5 @@ internal class MatchModel(string startNodeLabel, Eloquent eloquent, int index) :
 
 
 internal class MatchModel<TNode>(Eloquent<TNode> eloquent, int index) : MatchModel(typeof(TNode).Name, eloquent, index)
-where TNode : class { }
+where TNode : class
+{ }
