@@ -67,6 +67,32 @@ public class NodeQuery
 
     #region Query executions
     ///<summary>
+    /// Acquires a write lock on the root node of the query
+    ///</summary>
+    public void Lock()
+    {
+        if (InternalDatabaseContext.Transaction == null)
+        {
+            throw new InvalidOperationException("Lock/Unlock should only be used within an explicitly opened transaction!");
+        }
+        var _cypher = CypherBuilder.BuildLockQuery(Matches).ToString();
+        InternalDatabaseContext.Run(_cypher, QueryParameters);
+    }
+
+    ///<summary>
+    /// Acquires a write lock on the root node of the query
+    ///</summary>
+    public async Task LockAsync(CancellationToken cancellationToken = default)
+    {
+        if (InternalDatabaseContext.Transaction == null)
+        {
+            throw new InvalidOperationException("Lock/Unlock should only be used within an explicitly opened transaction!");
+        }
+        var _cypher = CypherBuilder.BuildLockQuery(Matches).ToString();
+        await InternalDatabaseContext.RunAsync(_cypher, QueryParameters, cancellationToken);
+    }
+
+    ///<summary>
     /// Checks if the match has a existing path.
     ///</summary>
     ///<returns>True if a path exists, false otherwise</returns>

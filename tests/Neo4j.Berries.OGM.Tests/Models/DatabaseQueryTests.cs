@@ -1,5 +1,6 @@
 using Neo4j.Berries.OGM.Tests.Common;
 using FluentAssertions;
+using Neo4j.Driver;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 
@@ -100,6 +101,43 @@ public class DatabaseQueryTests() : TestBase(true)
     }
 
     [Fact]
+    public void Locking_Should_Throw_InvalidOperationException_If_No_Transaction_Is_Open()
+    {
+        var act = () => TestGraphContext
+            .People
+            .Match()
+            .Lock();
+
+        act.Should()
+            .ThrowExactly<InvalidOperationException>()
+            .WithMessage("Lock/Unlock should only be used within an explicitly opened transaction!");
+    }
+
+    [Fact]
+    public void Lock_Should_Add_Lock_Flag_On_Queries_Nodes()
+    {
+        TestGraphContext.Database.BeginTransaction(() => {
+            TestGraphContext
+                .People
+                .Match()
+                .Lock();
+
+            var neo4jDatabase = ConfigurationsFactory.Config["Neo4j:Database"];
+            var _session = TestGraphContext.Database
+                .Driver
+                .Session(config => config.WithDatabase(neo4jDatabase));
+            var result = _session
+                .Run("SHOW TRANSACTION YIELD activeLockCount")
+                .ToList()
+                .Select(x => x["activeLockCount"]);
+
+            result.Should().Contain(x => int.Parse(x.ToString()) > 0);
+
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
     public async void Should_Multiple_Query_Actions_Should_Use_One_Match_Query()
     {
         var query = TestGraphContext
@@ -112,4 +150,5 @@ public class DatabaseQueryTests() : TestBase(true)
         (await query.AnyAsync()).Should().BeTrue();
         //TODO Add more assertions based on new methods
     }
+
 }
