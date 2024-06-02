@@ -23,13 +23,13 @@ public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
     });
 
     public ITransaction Transaction { get; private set; }
-    public void BeginTransaction(Func<Task> action)
+    public void BeginTransaction(Func<Task> action, Action<TransactionConfigBuilder> transactionConfigBuilder = null)
     {
-        BeginTransaction(async () => { await action(); return 0; });
+        BeginTransaction(async () => { await action(); return 0; }, transactionConfigBuilder);
     }
-    public T BeginTransaction<T>(Func<Task<T>> action)
+    public T BeginTransaction<T>(Func<Task<T>> action, Action<TransactionConfigBuilder> transactionConfigBuilder = null)
     {
-        var transaction = Session.BeginTransaction();
+        var transaction = Session.BeginTransaction(transactionConfigBuilder);
         Transaction = transaction;
         try
         {
