@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Neo4j.Driver;
 
 namespace Neo4j.Berries.OGM.Contexts;
@@ -23,10 +24,23 @@ public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
     });
 
     public ITransaction Transaction { get; private set; }
+
+    /// <summary>
+    /// This method will open a transaction inside the acquired session and commit it if the action is successful, otherwise it will rollback the transaction.
+    /// </summary>
+    /// <param name="action">The action to be executed inside the transaction.</param>
+    /// <param name="transactionConfigBuilder">The configuration of the transaction.</param>
+    /// <remarks>Only one transaction can run per session!</remarks>
     public void BeginTransaction(Func<Task> action, Action<TransactionConfigBuilder> transactionConfigBuilder = null)
     {
         BeginTransaction(async () => { await action(); return 0; }, transactionConfigBuilder);
     }
+    /// <summary>
+    /// This method will open a transaction inside the acquired session and commit it if the action is successful, otherwise it will rollback the transaction.
+    /// </summary>
+    /// <param name="action">The action to be executed inside the transaction.</param>
+    /// <param name="transactionConfigBuilder">The configuration of the transaction.</param>
+    /// <remarks>Only one transaction can run per session!</remarks>
     public T BeginTransaction<T>(Func<Task<T>> action, Action<TransactionConfigBuilder> transactionConfigBuilder = null)
     {
         var transaction = Session.BeginTransaction(transactionConfigBuilder);
@@ -44,6 +58,31 @@ public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
             Transaction = null;
             throw;
         }
+    }
+
+    /// <summary>
+    /// This method will open a transaction inside the acquired session and passes the transaction to the caller. Committing and Rolling back should be handled by the caller.
+    /// </summary>
+    /// <param name="action">The action to be executed inside the transaction.</param>
+    /// <param name="transactionConfigBuilder">The configuration of the transaction.</param>
+    /// <remarks>Only one transaction can run per session!</remarks>
+    public void BeingTransaction(Func<ITransaction, Task> action, Action<TransactionConfigBuilder> transactionConfigBuilder = null)
+    {
+        BeginTransaction(async (transaction) => { await action(transaction); return 0; }, transactionConfigBuilder);
+    }
+    
+    /// <summary>
+    /// This method will open a transaction inside the acquired session and passes the transaction to the caller. Committing and Rolling back should be handled by the caller.
+    /// </summary>
+    /// <param name="action">The action to be executed inside the transaction.</param>
+    /// <param name="transactionConfigBuilder">The configuration of the transaction.</param>
+    /// <remarks>Only one transaction can run per session!</remarks>
+    public T BeginTransaction<T>(Func<ITransaction, Task<T>> action, Action<TransactionConfigBuilder> transactionConfigBuilder = null)
+    {
+        var transaction = Session.BeginTransaction(transactionConfigBuilder);
+        Transaction = transaction;
+        var result = action(transaction).Result;
+        return result;
     }
 
     internal IEnumerable<IRecord> Run(string cypher, object parameters)
