@@ -116,7 +116,8 @@ public class DatabaseQueryTests() : TestBase(true)
     [Fact]
     public void Lock_Should_Add_Lock_Flag_On_Queries_Nodes()
     {
-        TestGraphContext.Database.BeginTransaction(() => {
+        TestGraphContext.Database.BeginTransaction(() =>
+        {
             TestGraphContext
                 .People
                 .Match()
@@ -135,6 +136,19 @@ public class DatabaseQueryTests() : TestBase(true)
 
             return Task.CompletedTask;
         });
+    }
+
+    [Fact]
+    public void Unlocking_Should_Throw_InvalidOperationException_If_No_Transaction_Is_Open()
+    {
+        var act = () => TestGraphContext
+            .People
+            .Match()
+            .Unlock();
+
+        act.Should()
+            .ThrowExactly<InvalidOperationException>()
+            .WithMessage("Lock/Unlock should only be used within an explicitly opened transaction!");
     }
 
     [Fact]
