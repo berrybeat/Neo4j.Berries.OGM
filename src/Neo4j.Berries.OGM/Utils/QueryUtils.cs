@@ -5,6 +5,18 @@ namespace Neo4j.Berries.OGM.Utils;
 
 internal static class QueryUtils
 {
+    internal static StringBuilder BuildLockQuery(this StringBuilder builder, List<IMatch> matches)
+    {
+        return builder.AppendLines(
+            $"SET {matches.First().StartNodeAlias}._LOCK_ = true"
+        );
+    }
+    internal static StringBuilder BuildUnlockQuery(this StringBuilder builder, List<IMatch> matches)
+    {
+        return builder.AppendLines(
+            $"REMOVE {matches.First().StartNodeAlias}._LOCK_"
+        );
+    }
     internal static StringBuilder BuildAnyQuery(this StringBuilder builder, List<IMatch> matches)
     {
         return builder.AppendLines(

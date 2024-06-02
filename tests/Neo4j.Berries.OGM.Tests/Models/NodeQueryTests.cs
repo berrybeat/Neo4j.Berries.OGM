@@ -19,6 +19,7 @@ public class NodeQueryTests
     }
 
 
+
     [Fact]
     public void Should_Create_Cypher_Query_Without_Where_Clause()
     {

@@ -67,6 +67,66 @@ public class NodeQuery
 
     #region Query executions
     ///<summary>
+    /// Acquires a write(exclusive) lock on the root node of the query
+    ///</summary>
+    ///<remarks>Make sure the unlock method for the same query is called at the end of the transaction</remarks>
+    ///<exception cref="InvalidOperationException">Thrown when the query is not executed within a transaction</exception>
+    public void Lock()
+    {
+        if (InternalDatabaseContext.Transaction == null)
+        {
+            throw new InvalidOperationException("Lock/Unlock should only be used within an explicitly opened transaction!");
+        }
+        var _cypher = CypherBuilder.BuildLockQuery(Matches).ToString();
+        InternalDatabaseContext.Run(_cypher, QueryParameters);
+    }
+
+    ///<summary>
+    /// Acquires a write(exclusive) lock on the root node of the query
+    ///</summary>
+    ///<remarks>Make sure the unlock method for the same query is called at the end of the transaction</remarks>
+    ///<exception cref="InvalidOperationException">Thrown when the query is not executed within a transaction</exception>
+    public async Task LockAsync(CancellationToken cancellationToken = default)
+    {
+        if (InternalDatabaseContext.Transaction == null)
+        {
+            throw new InvalidOperationException("Lock/Unlock should only be used within an explicitly opened transaction!");
+        }
+        var _cypher = CypherBuilder.BuildLockQuery(Matches).ToString();
+        await InternalDatabaseContext.RunAsync(_cypher, QueryParameters, cancellationToken);
+    }
+
+    ///<summary>
+    /// Removes the _LOCK_ flag from the locked nodes.
+    ///</summary>
+    ///<remarks>Please be aware that a lock will only be removed after the transaction is committed, rolled back or timed out</remarks>
+    ///<exception cref="InvalidOperationException">Thrown when the query is not executed within a transaction</exception>
+    public void Unlock()
+    {
+        if (InternalDatabaseContext.Transaction == null)
+        {
+            throw new InvalidOperationException("Lock/Unlock should only be used within an explicitly opened transaction!");
+        }
+        var _cypher = CypherBuilder.BuildUnlockQuery(Matches).ToString();
+        InternalDatabaseContext.Run(_cypher, QueryParameters);
+    }
+
+    ///<summary>
+    /// Removes the _LOCK_ flag from the locked nodes.
+    ///</summary>
+    ///<remarks>Please be aware that a lock will only be removed after the transaction is committed, rolled back or timed out</remarks>
+    ///<exception cref="InvalidOperationException">Thrown when the query is not executed within a transaction</exception>
+    public async Task UnlockAsync(CancellationToken cancellationToken)
+    {
+        if (InternalDatabaseContext.Transaction == null)
+        {
+            throw new InvalidOperationException("Lock/Unlock should only be used within an explicitly opened transaction!");
+        }
+        var _cypher = CypherBuilder.BuildUnlockQuery(Matches).ToString();
+        await InternalDatabaseContext.RunAsync(_cypher, QueryParameters, cancellationToken);
+    }
+
+    ///<summary>
     /// Checks if the match has a existing path.
     ///</summary>
     ///<returns>True if a path exists, false otherwise</returns>
