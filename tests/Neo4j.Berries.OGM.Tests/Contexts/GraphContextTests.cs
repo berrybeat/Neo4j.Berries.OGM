@@ -2,6 +2,8 @@ using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using Neo4j.Berries.OGM.Utils;
 using FluentAssertions;
+using Neo4j.Berries.OGM.Contexts;
+using Neo4j.Berries.OGM.Models.Config;
 
 namespace Neo4j.Berries.OGM.Tests.Contexts;
 
@@ -278,6 +280,41 @@ public class GraphContextTests : TestBase
         friend.Age.Should().Be(person.Friends[0].Age);
         friend.FirstName.Should().BeNullOrEmpty();
         friend.LastName.Should().BeNullOrEmpty();
+    }
+
+    [Fact]
+    public void Should_Create_Node_With_CamelCase_Properties()
+    {
+        var person = new Person
+        {
+            Id = Guid.NewGuid(),
+            FirstName = "Farhad",
+            LastName = "Nowzari",
+            Age = 32,
+            BirthDate = new DateTime(1991, 01, 10),
+            Friends = new List<Person> {
+                new Person {
+                    Age = 50,
+                    FirstName = "Bruce",
+                    LastName = "Wayne",
+                    Id = Guid.NewGuid()
+                }
+            }
+        };
+        var configurationBuilder = new OGMConfigurationBuilder(null)
+            .ConfigureFromAssemblies(GetType().Assembly);
+        configurationBuilder.PropertyCaseConverter = (s) => $"{char.ToLower(s[0])}{s[1..]}";
+        _ = new Neo4jSingletonContext(configurationBuilder);
+        TestGraphContext.People.Add(person);
+        TestGraphContext.SaveChanges();
+
+        var personSUT = TestGraphContext
+            .People
+            .Match(x => x.Where(y => y.Id, person.Id))
+            .WithRelation(x => x.Friends, x => x.Where(y => y.Id, person.Friends.First().Id))
+            .ToList();
+        
+        personSUT.Should().NotBeEmpty();
     }
 
     [Fact]

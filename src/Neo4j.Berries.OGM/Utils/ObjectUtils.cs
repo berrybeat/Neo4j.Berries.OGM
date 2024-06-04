@@ -133,10 +133,10 @@ public static class ObjectUtils
                 continue;
             }
             if (
-                (mergeProperties.Any() && mergeProperties.Contains(prop.Name)) ||
+                (mergeProperties.Any() && mergeProperties.Contains(propName)) ||
                 (!mergeProperties.Any() &&
-                    ((!nodeConfig.ExcludedProperties.Contains(prop.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-                    (nodeConfig.IncludedProperties.Contains(prop.Name) && !nodeConfig.IncludedProperties.IsEmpty)))
+                    ((!nodeConfig.ExcludedProperties.Contains(propName) && !nodeConfig.ExcludedProperties.IsEmpty) ||
+                    (nodeConfig.IncludedProperties.Contains(propName) && !nodeConfig.IncludedProperties.IsEmpty)))
                 )
                 obj[propName] = value.ToNeo4jValue();
             else if (!mergeProperties.Any() && nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)

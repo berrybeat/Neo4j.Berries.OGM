@@ -30,6 +30,7 @@ where TNode : class
     public NodeTypeBuilder<TNode> HasIdentifier<TProperty>(Expression<Func<TNode, TProperty>> expression)
     {
         var propertyName = ((MemberExpression)expression.Body).Member.Name;
+        propertyName = Neo4jSingletonContext.PropertyCaseConverter(propertyName);
         Config.Identifiers.Add(propertyName);
         return this;
     }
@@ -64,7 +65,7 @@ where TNode : class
     public void Include<TProperty>(params Expression<Func<TNode, TProperty>>[] expressions)
     {
         expressions
-                .Select(x => ((MemberExpression)x.Body).Member.Name).ToList()
+                .Select(x => Neo4jSingletonContext.PropertyCaseConverter(((MemberExpression)x.Body).Member.Name)).ToList()
                 .ForEach(Config.IncludedProperties.Add);
     }
 
@@ -74,7 +75,7 @@ where TNode : class
     public void Exclude<TProperty>(params Expression<Func<TNode, TProperty>>[] expressions)
     {
         expressions
-                .Select(x => ((MemberExpression)x.Body).Member.Name).ToList()
+                .Select(x => Neo4jSingletonContext.PropertyCaseConverter(((MemberExpression)x.Body).Member.Name)).ToList()
                 .ForEach(x =>
                 {
                     if (!Config.ExcludedProperties.Contains(x))

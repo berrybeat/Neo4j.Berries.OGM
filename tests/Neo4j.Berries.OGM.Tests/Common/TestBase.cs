@@ -1,4 +1,5 @@
 using Neo4j.Berries.OGM.Contexts;
+using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Tests.Mocks;
 using Neo4j.Driver;
 
@@ -11,9 +12,11 @@ public abstract class TestBase
     public ApplicationGraphContext TestGraphContext { get; }
     public TestBase(bool withSeed = false)
     {
-        _ = new Neo4jSingletonContext(GetType().Assembly);
+        var configurationBuilder = new OGMConfigurationBuilder(null)
+            .ConfigureFromAssemblies(GetType().Assembly);
+        _ = new Neo4jSingletonContext(configurationBuilder);
         Neo4jSingletonContext.EnforceIdentifiers = false;
-        Neo4jSingletonContext.PropertyCaseConverter = null;
+        Neo4jSingletonContext.PropertyCaseConverter = (x) => x;
         Neo4jOptions = new Neo4jOptions(ConfigurationsFactory.Config);
         TestGraphContext = new ApplicationGraphContext(Neo4jOptions);
         Neo4jSessionFactory.OpenSession(async session =>
