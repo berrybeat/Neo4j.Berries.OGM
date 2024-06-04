@@ -102,10 +102,10 @@ public static class ObjectUtils
                     continue;
                 if (list.IsListOfInterfaces())
                 {
-                    obj[propName] = new Dictionary<string, List<Dictionary<string, object>>>();
+                    obj[prop.Name] = new Dictionary<string, List<Dictionary<string, object>>>();
                     foreach (var item in list)
                     {
-                        var record = obj[propName] as Dictionary<string, List<Dictionary<string, object>>>;
+                        var record = obj[prop.Name] as Dictionary<string, List<Dictionary<string, object>>>;
                         var typeName = item.GetType().Name;
                         if (!record.ContainsKey(item.GetType().Name))
                         {
@@ -123,13 +123,13 @@ public static class ObjectUtils
                             .Select(
                                 x => x.ToDictionary(config, propertyCaseConverter, relation?.EndNodeMergeProperties, iterations + 1)
                             ).Where(x => x != null);
-                    obj[propName] = parsedList?.Any() == false ? null : parsedList;
+                    obj[prop.Name] = parsedList?.Any() == false ? null : parsedList;
                 }
                 continue;
             }
             if (nodeConfig.Relations.TryGetValue(prop.Name, out relation) && value is not null)
             {
-                obj[propName] = value.ToDictionary(config, propertyCaseConverter, relation?.EndNodeMergeProperties, iterations + 1);
+                obj[prop.Name] = value.ToDictionary(config, propertyCaseConverter, relation?.EndNodeMergeProperties, iterations + 1);
                 continue;
             }
             if (

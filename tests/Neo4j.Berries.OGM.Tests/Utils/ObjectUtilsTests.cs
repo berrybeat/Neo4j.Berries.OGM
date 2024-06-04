@@ -308,24 +308,24 @@ public class ObjectUtilsTests
         result.Should().ContainKey("id");
         result.Should().ContainKey("firstName");
         result.Should().ContainKey("lastName");
-        result.Should().ContainKey("address");
-        result.Should().ContainKey("moviesAsActor");
-        result.Should().ContainKey("resources");
+        result.Should().ContainKey("Address");
+        result.Should().ContainKey("MoviesAsActor");
+        result.Should().ContainKey("Resources");
 
-        var address = result["address"] as Dictionary<string, object>;
+        var address = result["Address"] as Dictionary<string, object>;
         address.Should().ContainKey("addressLine");
         address.Should().ContainKey("city");
         address.Should().ContainKey("country");
         address.Should().ContainKey("postalCode");
 
-        var moviesAsActor = result["moviesAsActor"] as IEnumerable<Dictionary<string, object>>;
+        var moviesAsActor = result["MoviesAsActor"] as IEnumerable<Dictionary<string, object>>;
         moviesAsActor.Should().HaveCount(2);
         moviesAsActor.First().Should().ContainKey("id");
         moviesAsActor.First().Should().ContainKey("name");
         moviesAsActor.Last().Should().ContainKey("id");
         moviesAsActor.Last().Should().ContainKey("name");
 
-        var resources = result["resources"] as Dictionary<string, List<Dictionary<string, object>>>;
+        var resources = result["Resources"] as Dictionary<string, List<Dictionary<string, object>>>;
         resources.Should().HaveCount(2);
         resources.Should().ContainKey("Car");
         resources.Should().ContainKey("Room");

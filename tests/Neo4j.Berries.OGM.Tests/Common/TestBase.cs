@@ -13,6 +13,7 @@ public abstract class TestBase
     {
         _ = new Neo4jSingletonContext(GetType().Assembly);
         Neo4jSingletonContext.EnforceIdentifiers = false;
+        Neo4jSingletonContext.PropertyCaseConverter = null;
         Neo4jOptions = new Neo4jOptions(ConfigurationsFactory.Config);
         TestGraphContext = new ApplicationGraphContext(Neo4jOptions);
         Neo4jSessionFactory.OpenSession(async session =>
