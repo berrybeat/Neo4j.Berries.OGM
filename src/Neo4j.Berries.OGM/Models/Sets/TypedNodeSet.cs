@@ -25,7 +25,7 @@ where TNode : class
     public void Merge(TNode node)
     {
         MergeNode ??= new(typeof(TNode).Name);
-        var _node = node.ToDictionary(Neo4jSingletonContext.Configs);
+        var _node = node.ToDictionary(Neo4jSingletonContext.Configs, Neo4jSingletonContext.PropertyCaseConverter);
         MergeNodes = MergeNodes.Append(_node);
     }
     /// <summary>
@@ -42,7 +42,7 @@ where TNode : class
     public void Add(TNode node)
     {
         NewNode ??= new(typeof(TNode).Name);
-        var _node = node.ToDictionary(Neo4jSingletonContext.Configs);
+        var _node = node.ToDictionary(Neo4jSingletonContext.Configs, Neo4jSingletonContext.PropertyCaseConverter);
         NewNodes = NewNodes.Append(_node);
     }
     /// <summary>
