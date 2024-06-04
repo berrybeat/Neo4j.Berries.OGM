@@ -13,7 +13,10 @@ internal static class Converters
         get
         {
             if(_serializerOptions is not null) return _serializerOptions;
-            _serializerOptions = new JsonSerializerOptions();
+            _serializerOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
             _serializerOptions.Converters.Add(new JsonStringEnumConverter());
             _serializerOptions.Converters.Add(new ZonedDateTimeConverter());
             _serializerOptions.Converters.Add(new LocalDateTimeConverter());

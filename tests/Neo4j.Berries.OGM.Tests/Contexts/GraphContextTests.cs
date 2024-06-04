@@ -308,13 +308,19 @@ public class GraphContextTests : TestBase
         TestGraphContext.People.Add(person);
         TestGraphContext.SaveChanges();
 
-        var personSUT = TestGraphContext
+        var peopleSUT = TestGraphContext
             .People
             .Match(x => x.Where(y => y.Id, person.Id))
             .WithRelation(x => x.Friends, x => x.Where(y => y.Id, person.Friends.First().Id))
             .ToList();
         
-        personSUT.Should().NotBeEmpty();
+        peopleSUT.Should().NotBeEmpty();
+        var personSUT = peopleSUT.First();
+        personSUT.Id.Should().Be(person.Id);
+        personSUT.FirstName.Should().Be(person.FirstName);
+        personSUT.LastName.Should().Be(person.LastName);
+        personSUT.Age.Should().Be(person.Age);
+        personSUT.BirthDate.Should().Be(person.BirthDate);
     }
 
     [Fact]

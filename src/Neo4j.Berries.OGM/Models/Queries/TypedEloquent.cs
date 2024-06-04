@@ -70,7 +70,7 @@ where TQueryable : class
         }
 
         var opt = OperatorMaps.ComparisonOperatorMap[comparisonOperator];
-        AddWhereClause(expression.GetPropertyName(), opt, value);
+        AddWhereClause(expression.GetPropertyName(true), opt, value);
         return this;
     }
     /// <summary>
@@ -79,7 +79,7 @@ where TQueryable : class
     /// <param name="expression">The property to compare</param>
     public Eloquent<TQueryable> WhereIsNull<TProperty>(Expression<Func<TQueryable, TProperty>> expression)
     {
-        AddWhereClause(expression.GetPropertyName(), "{0} IS NULL", null, true);
+        AddWhereClause(expression.GetPropertyName(true), "{0} IS NULL", null, true);
         return this;
     }
     /// <summary>
@@ -88,7 +88,7 @@ where TQueryable : class
     /// <param name="expression">The property to compare</param>
     public Eloquent<TQueryable> WhereIsNotNull<TProperty>(Expression<Func<TQueryable, TProperty>> expression)
     {
-        AddWhereClause(expression.GetPropertyName(), "{0} IS NOT NULL", null, true);
+        AddWhereClause(expression.GetPropertyName(true), "{0} IS NOT NULL", null, true);
         return this;
     }
     /// <summary>
@@ -98,7 +98,7 @@ where TQueryable : class
     /// <param name="values">The values to compare the property to</param>
     public Eloquent<TQueryable> WhereIsIn<TProperty>(Expression<Func<TQueryable, TProperty>> expression, IEnumerable<TProperty> values)
     {
-        AddWhereClause(expression.GetPropertyName(), "IN", values);
+        AddWhereClause(expression.GetPropertyName(true), "IN", values);
         return this;
     }
     /// <summary>
@@ -108,7 +108,7 @@ where TQueryable : class
     /// <param name="values">The values to compare the property to</param>
     public Eloquent<TQueryable> WhereIsNotIn<TProperty>(Expression<Func<TQueryable, TProperty>> expression, IEnumerable<TProperty> values)
     {
-        AddWhereClause(expression.GetPropertyName(), "NOT {0} IN {1}", values, true);
+        AddWhereClause(expression.GetPropertyName(true), "NOT {0} IN {1}", values, true);
         return this;
     }
 }

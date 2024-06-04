@@ -1,18 +1,20 @@
 using System.Linq.Expressions;
+using Neo4j.Berries.OGM.Contexts;
 
 namespace Neo4j.Berries.OGM.Utils;
 
 public static class ExpressionUtils
 {
-    public static string GetPropertyName<T, TProperty>(this Expression<Func<T, TProperty>> expression)
+    public static string GetPropertyName<T, TProperty>(this Expression<Func<T, TProperty>> expression, bool withConversion = false)
     {
         if (expression.Body is MemberExpression memberExpression)
         {
-            return memberExpression.Member.Name;
+            return withConversion ? Neo4jSingletonContext.PropertyCaseConverter(memberExpression.Member.Name) : memberExpression.Member.Name;
         }
         else if (expression.Body is UnaryExpression unaryExpression )
         {
-            return ((MemberExpression)unaryExpression.Operand).Member.Name;
+            var propertyName = ((MemberExpression)unaryExpression.Operand).Member.Name;
+            return withConversion ? Neo4jSingletonContext.PropertyCaseConverter(propertyName) : propertyName;
         }
         else
         {
