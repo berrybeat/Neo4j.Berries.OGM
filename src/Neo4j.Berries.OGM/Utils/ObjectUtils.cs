@@ -78,7 +78,7 @@ public static class ObjectUtils
         }
         return input;
     }
-    internal static Dictionary<string, object> ToDictionary(this object node, Dictionary<string, NodeConfiguration> config, IEnumerable<string> mergeProperties = null, int iterations = 0)
+    internal static Dictionary<string, object> ToDictionary(this object node, Dictionary<string, NodeConfiguration> config, Func<string, string> propertyCaseConverter = null, IEnumerable<string> mergeProperties = null, int iterations = 0)
     {
         if (iterations > 1)
             return null;
@@ -88,9 +88,11 @@ public static class ObjectUtils
         {
             nodeConfig = _nodeConfig;
         }
+        propertyCaseConverter ??= ((x) => x);
         Dictionary<string, object> obj = [];
         foreach (PropertyInfo prop in node.GetType().GetProperties())
         {
+            var propName = propertyCaseConverter(prop.Name);
             var value = prop.GetValue(node);
             IRelationConfiguration relation = null;
             if (value?.GetType().IsGenericType == true)
@@ -110,7 +112,8 @@ public static class ObjectUtils
                             record[typeName] = [];
                         }
                         record[typeName]
-                            .Add(item.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1));
+                            .Add(item.ToDictionary(
+                                config, propertyCaseConverter, relation?.EndNodeMergeProperties, iterations + 1));
                     }
                 }
                 else
@@ -118,7 +121,7 @@ public static class ObjectUtils
                     var parsedList = list == null || list.Count == 0 ? null :
                         list
                             .Select(
-                                x => x.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1)
+                                x => x.ToDictionary(config, propertyCaseConverter, relation?.EndNodeMergeProperties, iterations + 1)
                             ).Where(x => x != null);
                     obj[prop.Name] = parsedList?.Any() == false ? null : parsedList;
                 }
@@ -126,16 +129,16 @@ public static class ObjectUtils
             }
             if (nodeConfig.Relations.TryGetValue(prop.Name, out relation) && value is not null)
             {
-                obj[prop.Name] = value.ToDictionary(config, relation?.EndNodeMergeProperties, iterations + 1);
+                obj[prop.Name] = value.ToDictionary(config, propertyCaseConverter, relation?.EndNodeMergeProperties, iterations + 1);
                 continue;
             }
             if (
-                (mergeProperties.Any() && mergeProperties.Contains(prop.Name)) ||
+                (mergeProperties.Any() && mergeProperties.Contains(propName)) ||
                 (!mergeProperties.Any() &&
-                    ((!nodeConfig.ExcludedProperties.Contains(prop.Name) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-                    (nodeConfig.IncludedProperties.Contains(prop.Name) && !nodeConfig.IncludedProperties.IsEmpty)))
+                    ((!nodeConfig.ExcludedProperties.Contains(propName) && !nodeConfig.ExcludedProperties.IsEmpty) ||
+                    (nodeConfig.IncludedProperties.Contains(propName) && !nodeConfig.IncludedProperties.IsEmpty)))
                 )
-                obj[prop.Name] = value.ToNeo4jValue();
+                obj[propName] = value.ToNeo4jValue();
             else if (!mergeProperties.Any() && nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)
             {
                 if (value is DateTime)
@@ -144,7 +147,7 @@ public static class ObjectUtils
                     if (parsedValue == DateTime.MinValue) continue;
                 }
                 if (value != default)
-                    obj[prop.Name] = value.ToNeo4jValue();
+                    obj[propName] = value.ToNeo4jValue();
             }
         }
         return obj;

@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Neo4j.Berries.OGM.Contexts;
 
 namespace Neo4j.Berries.OGM.Models.Config;
 
@@ -9,15 +10,14 @@ where TNode : class
 
     public MergeConfiguration<TNode> Include<TProperty>(params Expression<Func<TNode, TProperty>>[] properties)
     {
-        properties.Select(x => ((MemberExpression)x.Body).Member.Name)
-        .ToList()
-        .ForEach(x =>
+        var mergeProperties = properties.Select(x => Neo4jSingletonContext.PropertyCaseConverter(((MemberExpression)x.Body).Member.Name));
+        foreach (var prop in mergeProperties)
         {
-            if (!IncludedProperties.Contains(x))
+            if (!IncludedProperties.Contains(prop))
             {
-                IncludedProperties = IncludedProperties.Append(x);
+                IncludedProperties = IncludedProperties.Append(prop);
             }
-        });
+        }
         return this;
     }
 }

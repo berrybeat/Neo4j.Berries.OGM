@@ -36,4 +36,10 @@ public class OGMConfigurationBuilder(IServiceProvider serviceProvider)
     /// </summary>
     /// <remarks>Either Create or Merge, the library will check if the passed node has an identifier configured for it and the identifier is passed.</remarks>
     public bool EnforceIdentifiers { get; set; } = false;
+
+    /// <summary>
+    /// Configures the property case converter for the nodes.
+    /// </summary>
+    /// <remarks>Set this function if you want to convert the property names to a specific case.</remarks>
+    public Func<string, string> PropertyCaseConverter { get; set; } = null;
 }

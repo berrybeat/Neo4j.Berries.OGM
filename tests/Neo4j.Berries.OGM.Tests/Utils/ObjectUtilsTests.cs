@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Enums;
@@ -241,6 +240,105 @@ public class ObjectUtilsTests
         resources["Car"].First()["LicensePlate"].Should().Be("ABC123");
         resources["Car"].First()["Brand"].Should().Be("Toyota");
         resources["Car"].First()["Model"].Should().Be("Corolla");
+    }
+
+    [Fact]
+    public void Should_Convert_All_Properties_To_CamelCase()
+    {
+        var person = new Person
+        {
+            Id = Guid.NewGuid(),
+            FirstName = "Keanu",
+            LastName = "Reeves",
+            Address = new Address
+            {
+                AddressLine = "1234",
+                City = "Los Angeles",
+                Country = "USA",
+                PostalCode = "12345",
+            },
+            MoviesAsActor = [
+                new Movie
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Matrix",
+                },
+                new Movie
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Matrix Reloaded",
+                }
+            ],
+            Resources = [
+                new Room
+                {
+                    Number = "1234",
+                },
+                new Car
+                {
+                    LicensePlate = "ABC123",
+                    Brand = "Toyota",
+                    Model = "Corolla",
+                }
+            ]
+        };
+        Dictionary<string, NodeConfiguration> config = new() {
+            { "Movie", new () },
+            { "Person", new () }
+        };
+        config["Person"]
+            .Relations
+            .TryAdd(
+                "MoviesAsActor",
+                new RelationConfiguration<Person, Movie>("ACTED_IN", RelationDirection.Out)
+            );
+        config["Person"]
+            .Relations
+            .TryAdd(
+                "Address",
+                new RelationConfiguration<Person, Address>("LIVES_IN", RelationDirection.Out)
+            );
+        config["Person"]
+            .Relations
+            .TryAdd(
+                "Resources",
+                new RelationConfiguration<Person, IResource>("HAS", RelationDirection.Out)
+            );
+        var result = person.ToDictionary(config, (input) => $"{char.ToLower(input[0])}{input[1..]}");
+        result.Should().ContainKey("id");
+        result.Should().ContainKey("firstName");
+        result.Should().ContainKey("lastName");
+        result.Should().ContainKey("Address");
+        result.Should().ContainKey("MoviesAsActor");
+        result.Should().ContainKey("Resources");
+
+        var address = result["Address"] as Dictionary<string, object>;
+        address.Should().ContainKey("addressLine");
+        address.Should().ContainKey("city");
+        address.Should().ContainKey("country");
+        address.Should().ContainKey("postalCode");
+
+        var moviesAsActor = result["MoviesAsActor"] as IEnumerable<Dictionary<string, object>>;
+        moviesAsActor.Should().HaveCount(2);
+        moviesAsActor.First().Should().ContainKey("id");
+        moviesAsActor.First().Should().ContainKey("name");
+        moviesAsActor.Last().Should().ContainKey("id");
+        moviesAsActor.Last().Should().ContainKey("name");
+
+        var resources = result["Resources"] as Dictionary<string, List<Dictionary<string, object>>>;
+        resources.Should().HaveCount(2);
+        resources.Should().ContainKey("Car");
+        resources.Should().ContainKey("Room");
+        resources["Room"].Should().HaveCount(1);
+        resources["Car"].Should().HaveCount(1);
+
+        var room = resources["Room"].First();
+        room.Should().ContainKey("number");
+
+        var car = resources["Car"].First();
+        car.Should().ContainKey("licensePlate");
+        car.Should().ContainKey("brand");
+        car.Should().ContainKey("model");
     }
     #endregion
 
