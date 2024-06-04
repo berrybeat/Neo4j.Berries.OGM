@@ -1,4 +1,5 @@
 using System.Text;
+using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Helpers;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
@@ -53,11 +54,12 @@ public class UpdateSet
         var validProperties = propertiesHelper.GetValidProperties(NodeConfig);
         foreach (var prop in validProperties)
         {
+            var propKey = Neo4jSingletonContext.PropertyCaseConverter(prop.Key);
             var parameterName = CurrentParameterName;
             if (Parameters.Count > 0)
-                CypherBuilder.Append($", {NodeAlias}.{prop.Key} = ${parameterName}");
+                CypherBuilder.Append($", {NodeAlias}.{propKey} = ${parameterName}");
             else
-                CypherBuilder.Append($"{NodeAlias}.{prop.Key} = ${parameterName}");
+                CypherBuilder.Append($"{NodeAlias}.{propKey} = ${parameterName}");
 
             Parameters.Add(parameterName, prop.Value.ToNeo4jValue());
         }

@@ -5,14 +5,12 @@ using Neo4j.Berries.OGM.Tests.Mocks.Enums;
 using Neo4j.Berries.OGM.Enums;
 
 namespace Neo4j.Berries.OGM.Tests.Models.Sets;
-
-public class UpdateTests : TestBase
+public class UpdateNormalCasePropertyTests : TestBase
 {
     private readonly Movie TestMovieNode;
     private readonly Equipment TestEquipmentNode;
     private readonly Person TestPersonNode;
-
-    public UpdateTests() : base(true)
+    public UpdateNormalCasePropertyTests() : base(true)
     {
         TestMovieNode = TestGraphContext.Movies.Match().FirstOrDefault();
         TestEquipmentNode = TestGraphContext.Equipments.Match().FirstOrDefault();

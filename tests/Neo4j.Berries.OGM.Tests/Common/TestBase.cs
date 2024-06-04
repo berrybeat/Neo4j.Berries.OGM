@@ -10,13 +10,15 @@ public abstract class TestBase
 {
     public Neo4jOptions Neo4jOptions { get; set; }
     public ApplicationGraphContext TestGraphContext { get; }
-    public TestBase(bool withSeed = false)
+    public TestBase(bool withSeed = false, Func<string, string> propertyCaseConverter = null)
     {
         var configurationBuilder = new OGMConfigurationBuilder(null)
             .ConfigureFromAssemblies(GetType().Assembly);
+        configurationBuilder.PropertyCaseConverter = propertyCaseConverter;
         _ = new Neo4jSingletonContext(configurationBuilder);
         Neo4jSingletonContext.EnforceIdentifiers = false;
-        Neo4jSingletonContext.PropertyCaseConverter = (x) => x;
+        if(propertyCaseConverter == null)
+            Neo4jSingletonContext.PropertyCaseConverter = (x) => x;
         Neo4jOptions = new Neo4jOptions(ConfigurationsFactory.Config);
         TestGraphContext = new ApplicationGraphContext(Neo4jOptions);
         Neo4jSessionFactory.OpenSession(async session =>

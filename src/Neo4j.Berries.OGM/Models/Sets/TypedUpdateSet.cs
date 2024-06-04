@@ -23,7 +23,7 @@ where TNode : class
     /// <param name="value">The value to set the property to</param>
     public UpdateSet<TNode> Set<TProperty>(Expression<Func<TNode, TProperty>> expression, TProperty value)
     {
-        var property = expression.GetPropertyName();
+        var property = expression.GetPropertyName(true);
         base.Set(property, value);
         return this;
 
@@ -44,7 +44,7 @@ where TNode : class
     /// <param name="node">An instance with the new values of the node which needs to be updated.</param>
     public UpdateSet<TNode> Set(TNode node)
     {
-        base.SetAll(node);
+        SetAll(node);
         return this;
     }
 }
