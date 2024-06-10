@@ -372,5 +372,44 @@ public class ObjectUtilsTests
         var director = result["Director"] as Dictionary<string, object>;
         director.Should().NotContainKey("BirthDate");
     }
+    [Fact]
+    public void Should_Normalize_Arrays_Of_Reference_Types() {
+        var movie = new Dictionary<string, object> {
+            { "Id", Guid.NewGuid() },
+            { "Name", "The Matrix" },
+            { "ReleaseDate", null },
+            { "Actors", new List<Dictionary<string, object>> {
+                new() {
+                    { "Name", "Keanu Reeves" }
+                },
+                new() {
+                    { "Name", "Carrie-Anne Moss" }
+                }
+            }}
+        };
+        var result = movie.NormalizeValuesForNeo4j();
+        var actors = result["Actors"] as IEnumerable<Dictionary<string, object>>;
+        actors.Should().HaveCount(2);
+        actors.First()["Name"].Should().Be("Keanu Reeves");
+        actors.Last()["Name"].Should().Be("Carrie-Anne Moss");
+    }
+    [Fact]
+    public void Should_Not_Convert_Arrays_Of_Value_Types()
+    {
+        var movie = new Dictionary<string, object> {
+            { "Id", Guid.NewGuid() },
+            { "Name", "The Matrix" },
+            { "ReleaseDate", null },
+            { "Actors", new List<string> {
+                "Keanu Reeves",
+                "Carrie-Anne Moss"
+            }}
+        };
+        var result = movie.NormalizeValuesForNeo4j();
+        var actors = result["Actors"] as IEnumerable<string>;
+        actors.Should().HaveCount(2);
+        actors.Should().Contain("Keanu Reeves");
+        actors.Should().Contain("Carrie-Anne Moss");
+    }
     #endregion
 }
