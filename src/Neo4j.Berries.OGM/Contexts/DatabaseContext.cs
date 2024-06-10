@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Neo4j.Driver;
 
 namespace Neo4j.Berries.OGM.Contexts;

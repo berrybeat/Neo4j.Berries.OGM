@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Collections;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
-using Neo4j.Berries.OGM.Contexts;
 using Microsoft.VisualBasic;
 
 namespace Neo4j.Berries.OGM.Utils;
@@ -66,8 +65,12 @@ public static class ObjectUtils
             }
             else if (item.Value.GetType().IsGenericType)
             {
-                input[item.Key] = ((IEnumerable)item.Value).Cast<Dictionary<string, object>>().Select(x => NormalizeValuesForNeo4j(x, true));
-                continue;
+                var genericArgumentType = item.Value.GetType().GetGenericArguments().First();
+                if (genericArgumentType.IsAssignableTo(typeof(IDictionary)))
+                {
+                    input[item.Key] = ((IEnumerable)item.Value).Cast<Dictionary<string, object>>().Select(x => NormalizeValuesForNeo4j(x, true));
+                    continue;
+                }
             }
             if (item.Value is null && recursion)
             {
