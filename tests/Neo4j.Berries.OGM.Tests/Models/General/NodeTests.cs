@@ -493,8 +493,8 @@ public class NodeSetTests : TestBase
         sut.Trim().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id})
-        ON CREATE SET m_0.CreatedOn=timestamp()
-        ON MATCH SET m_0.ModifiedOn=timestamp()
+        ON CREATE SET m_0.createdOn=timestamp()
+        ON MATCH SET m_0.modifiedOn=timestamp()
         SET m_0.FirstName=muv_0.FirstName
         """);
     }
@@ -516,8 +516,8 @@ public class NodeSetTests : TestBase
         sut.Trim().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id})
-        ON CREATE SET m_0.CreatedOn=timestamp(), m_0.ModifiedOn=timestamp()
-        ON MATCH SET m_0.ModifiedOn=timestamp()
+        ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
+        ON MATCH SET m_0.modifiedOn=timestamp()
         SET m_0.FirstName=muv_0.FirstName
         """);
     }
@@ -541,12 +541,12 @@ public class NodeSetTests : TestBase
         if(enforceModifiedTimestampKey)
             sut.Trim().Should().Be("""
             UNWIND $people AS cuv_0
-            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.CreatedOn=timestamp(), c_0.ModifiedOn=timestamp()
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
             """);
         else 
             sut.Trim().Should().Be("""
             UNWIND $people AS cuv_0
-            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.CreatedOn=timestamp()
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp()
             """);
     }
 }

@@ -8,11 +8,11 @@ public class TimestampConfiguration()
     /// </summary>
     public bool EnforceModifiedTimestampKey { get; set; }
     /// <summary>
-    /// The key to use for setting the created timestamp. Default: CreatedOn
+    /// The key to use for setting the created timestamp. Default: createdOn
     /// </summary>
-    public string CreatedTimestampKey { get; set; } = "CreatedOn";
+    public string CreatedTimestampKey { get; set; } = "createdOn";
     /// <summary>
-    /// The key to use for setting the updated timestamp. Default: ModifiedOn
+    /// The key to use for setting the updated timestamp. Default: modifiedOn
     /// </summary>
-    public string ModifiedTimestampKey { get; set; } = "ModifiedOn";
+    public string ModifiedTimestampKey { get; set; } = "modifiedOn";
 }
