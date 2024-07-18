@@ -17,6 +17,7 @@ public abstract class TestBase
         configurationBuilder.PropertyCaseConverter = propertyCaseConverter;
         _ = new Neo4jSingletonContext(configurationBuilder);
         Neo4jSingletonContext.EnforceIdentifiers = false;
+        Neo4jSingletonContext.TimestampConfiguration = new TimestampConfiguration();
         if(propertyCaseConverter == null)
             Neo4jSingletonContext.PropertyCaseConverter = (x) => x;
         Neo4jOptions = new Neo4jOptions(ConfigurationsFactory.Config);

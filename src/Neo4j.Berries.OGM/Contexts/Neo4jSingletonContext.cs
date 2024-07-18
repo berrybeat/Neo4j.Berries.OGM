@@ -9,6 +9,7 @@ internal class Neo4jSingletonContext
     private readonly Assembly[] _assemblies;
 
     public static bool EnforceIdentifiers { get; internal set; }
+    internal static TimestampConfiguration TimestampConfiguration { get; set; } = new TimestampConfiguration();
     internal static Dictionary<string, NodeConfiguration> Configs { get; private set; } = [];
     internal static Func<string, string> PropertyCaseConverter { get; set; } = (x) => x;
     public Neo4jSingletonContext(params Assembly[] assemblies)
@@ -21,6 +22,7 @@ internal class Neo4jSingletonContext
         _assemblies = builder.Assemblies;
         EnforceIdentifiers = builder.EnforceIdentifiers;
         PropertyCaseConverter = builder.PropertyCaseConverter ?? PropertyCaseConverter;
+        TimestampConfiguration ??= builder.TimestampConfiguration;
         ParseAssemblyForConfigurations();
         foreach (var config in builder.NodeSetConfigurations)
         {

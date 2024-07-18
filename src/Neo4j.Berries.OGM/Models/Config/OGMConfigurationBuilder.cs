@@ -6,7 +6,9 @@ public class OGMConfigurationBuilder(IServiceProvider serviceProvider)
 {
     internal Assembly[] Assemblies { get; private set; } = [];
     internal Dictionary<string, NodeConfiguration> NodeSetConfigurations { get; private set; } = [];
+    internal TimestampConfiguration TimestampConfiguration { get; private set; } = null;
     public IServiceProvider ServiceProvider { get; } = serviceProvider;
+
 
 
     /// <summary>
@@ -29,6 +31,14 @@ public class OGMConfigurationBuilder(IServiceProvider serviceProvider)
         builder(nodeSetConfigurationBuilder);
         NodeSetConfigurations = nodeSetConfigurationBuilder.NodeSetConfigurations;
         return this;
+    }
+    /// <summary>
+    /// Enabling timestamps will add CreatedOn and ModifiedOn properties to the nodes and relations.
+    /// </summary>
+    public void EnableTimestamps(TimestampConfiguration timestampConfiguration = null)
+    {
+        TimestampConfiguration = timestampConfiguration ?? new();
+        TimestampConfiguration.Enabled = true;
     }
 
     /// <summary>

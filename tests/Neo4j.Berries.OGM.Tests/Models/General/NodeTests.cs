@@ -431,7 +431,8 @@ public class NodeSetTests : TestBase
     }
 
     [Fact]
-    public void Should_Create_Cypher_For_Group_Relations() {
+    public void Should_Create_Cypher_For_Group_Relations()
+    {
         var node = new Node("Person");
         node.Consider([
             new () {
@@ -471,6 +472,52 @@ public class NodeSetTests : TestBase
         MERGE (m_0)-[:USES]->(m_0_1_0)
         )
         )
+        """);
+    }
+
+    [Fact]
+    public void Should_Extend_Cypher_With_CreatedOn_And_ModifiedOn_For_Nodes()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        sut.Trim().Should().Be("""
+        UNWIND $people AS muv_0
+        MERGE (m_0:Person {Id: muv_0.Id})
+        ON CREATE SET m_0.CreatedOn=timestamp()
+        ON MATCH SET m_0.ModifiedOn=timestamp()
+        SET m_0.FirstName=muv_0.FirstName
+        """);
+    }
+    [Fact]
+    public void Should_Extend_Cypher_With_ModifiedOn_For_Nodes_OnCreation_And_OnMatch()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        sut.Trim().Should().Be("""
+        UNWIND $people AS muv_0
+        MERGE (m_0:Person {Id: muv_0.Id})
+        ON CREATE SET m_0.CreatedOn=timestamp(), m_0.ModifiedOn=timestamp()
+        ON MATCH SET m_0.ModifiedOn=timestamp()
+        SET m_0.FirstName=muv_0.FirstName
         """);
     }
 }

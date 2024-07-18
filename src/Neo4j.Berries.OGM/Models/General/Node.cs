@@ -217,7 +217,7 @@ internal class Node(string label, int depth = 0)
     {
         cypherBuilder.Append($"CREATE ({alias}:{label})");
         var properties = Identifiers.Concat(Properties);
-        AppendWithSetProperties(cypherBuilder, alias, variable, properties);
+        AppendWithSetProperties(cypherBuilder, alias, variable, properties, false);
     }
     private void MergeProperties(string alias, string variable, StringBuilder cypherBuilder)
     {
@@ -229,13 +229,29 @@ internal class Node(string label, int depth = 0)
             cypherBuilder.Append('}');
         }
         cypherBuilder.Append(')');
-        AppendWithSetProperties(cypherBuilder, alias, variable, Properties);
+        AppendWithSetProperties(cypherBuilder, alias, variable, Properties, true);
     }
-    private static void AppendWithSetProperties(StringBuilder cypherBuilder, string alias, string variable, IEnumerable<string> properties)
+    private static void AppendWithSetProperties(StringBuilder cypherBuilder, string alias, string variable, IEnumerable<string> properties, bool isMerge)
     {
         if (properties.Any())
         {
-            cypherBuilder.Append(" SET ");
+            var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+            if (isMerge && timestampConfig.Enabled)
+            {
+                cypherBuilder.AppendLine();
+                cypherBuilder.Append($"ON CREATE SET {alias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                if (timestampConfig.EnforceModifiedTimestampKey)
+                {
+                    cypherBuilder.Append($", {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                }
+                cypherBuilder.AppendLine();
+                cypherBuilder.AppendLine($"ON MATCH SET {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                cypherBuilder.Append("SET ");
+            }
+            else
+            {
+                cypherBuilder.Append(" SET ");
+            }
             cypherBuilder.Append(string.Join(", ", properties.Select(x => $"{alias}.{x}={variable}.{x}")));
         }
         cypherBuilder.AppendLine();
