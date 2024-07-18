@@ -1,4 +1,5 @@
 using System.Text;
+using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
 
 namespace Neo4j.Berries.OGM.Utils;
@@ -50,6 +51,15 @@ internal static class QueryUtils
 
     internal static void BuildConnectionRelation(this StringBuilder builder, IRelationConfiguration relationConfig, List<IMatch> matches)
     {
-        builder.AppendLine($"CREATE ({matches.First().StartNodeAlias}){relationConfig.Format()}({matches.Last().StartNodeAlias})");
+        builder.AppendLine($"CREATE ({matches.First().StartNodeAlias}){relationConfig.Format("r0")}({matches.Last().StartNodeAlias})");
+        var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+        if (timestampConfig.Enabled)
+        {
+            if (timestampConfig.EnforceModifiedTimestampKey)
+                builder.AppendLine($"SET r0.{timestampConfig.CreatedTimestampKey} = timestamp(), r0.{timestampConfig.ModifiedTimestampKey} = timestamp()");
+            else
+                builder.AppendLine($"SET r0.{timestampConfig.CreatedTimestampKey} = timestamp()");
+
+        }
     }
 }

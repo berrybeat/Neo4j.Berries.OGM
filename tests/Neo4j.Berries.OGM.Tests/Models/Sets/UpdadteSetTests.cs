@@ -3,6 +3,7 @@ using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Tests.Common;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
+using Neo4j.Berries.OGM.Contexts;
 
 namespace Neo4j.Berries.OGM.Tests.Models.Sets;
 

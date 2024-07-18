@@ -12,7 +12,7 @@ builder.Services.AddNeo4j<ApplicationGraphContext>(builder.Configuration, option
 {
     options
         .ConfigureFromAssemblies(typeof(Program).Assembly);
-    options.EnforceIdentifiers = true;
+    options.EnableTimestamps();
 });
 var app = builder.Build();
 

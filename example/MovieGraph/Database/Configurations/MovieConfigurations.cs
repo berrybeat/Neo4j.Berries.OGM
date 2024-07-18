@@ -10,5 +10,6 @@ public class MovieConfigurations : INodeConfiguration<Movie> {
     {
         builder.HasRelationWithSingle(x => x.Director, "DIRECTED", RelationDirection.In);
         builder.HasRelationWithMultiple(x => x.Actors, "ACTED_IN", RelationDirection.In);
+        builder.HasIdentifier(x => x.Id);
     }
 }

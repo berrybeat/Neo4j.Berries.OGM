@@ -1,5 +1,5 @@
-using System.Linq.Expressions;
 using System.Text;
+using System.Linq.Expressions;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Models.Match;
@@ -99,6 +99,7 @@ where TNode : class
     {
         var cloneBuilder = CypherBuilder.Clone();
         var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         InternalDatabaseContext.Run(cloneBuilder.ToString(), parameters);
     }
     ///<summary>
@@ -109,8 +110,10 @@ where TNode : class
     {
         var cloneBuilder = CypherBuilder.Clone();
         var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         await InternalDatabaseContext.RunAsync(cloneBuilder.ToString(), parameters, cancellationToken);
     }
+
     ///<summary>
     /// Updates the nodes found in the query and returns the updated nodes
     ///</summary>
@@ -120,6 +123,7 @@ where TNode : class
     {
         var cloneBuilder = CypherBuilder.Clone();
         var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         ExpandCypherWithReturn(cloneBuilder);
         return InternalDatabaseContext.Run(
             cloneBuilder.ToString(),
@@ -136,6 +140,7 @@ where TNode : class
     {
         var cloneBuilder = CypherBuilder.Clone();
         var parameters = PrepareUpdate(updateSetBuilder, cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         ExpandCypherWithReturn(cloneBuilder);
         return await InternalDatabaseContext.RunAsync(
             cloneBuilder.ToString(),

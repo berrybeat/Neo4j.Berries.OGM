@@ -234,6 +234,7 @@ public class NodeQuery
         var cloneBuilder = CypherBuilder.Clone();
         var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
         var parameters = PrepareUpdate(updateSet, cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         InternalDatabaseContext.Run(cloneBuilder.ToString(), parameters);
     }
     ///<summary>
@@ -245,6 +246,7 @@ public class NodeQuery
         var cloneBuilder = CypherBuilder.Clone();
         var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
         var parameters = PrepareUpdate(updateSet, cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         await InternalDatabaseContext.RunAsync(cloneBuilder.ToString(), parameters, cancellationToken);
     }
     ///<summary>
@@ -258,6 +260,7 @@ public class NodeQuery
         var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
         var parameters = PrepareUpdate(updateSet, cloneBuilder);
         ExpandCypherWithReturn(cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         return InternalDatabaseContext.Run(
             cloneBuilder.ToString(),
             parameters,
@@ -274,6 +277,7 @@ public class NodeQuery
         var cloneBuilder = CypherBuilder.Clone();
         var updateSet = updateSetBuilder(new UpdateSet(cloneBuilder, Matches.Count, Matches.First().StartNodeAlias));
         var parameters = PrepareUpdate(updateSet, cloneBuilder);
+        AppendTimestamps(cloneBuilder);
         ExpandCypherWithReturn(cloneBuilder);
         return await InternalDatabaseContext.RunAsync(
             cloneBuilder.ToString(),
@@ -295,6 +299,14 @@ public class NodeQuery
         builder.AppendLine($"WITH {Matches.First().StartNodeAlias}");
         builder.AppendLine($"RETURN {Matches.First().StartNodeAlias}");
         return builder;
+    }
+    protected void AppendTimestamps(StringBuilder cypherBuilder) {
+        var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+        var nodeAlias = Matches.First().StartNodeAlias;
+        if (timestampConfig.Enabled)
+        {
+            cypherBuilder.Append($", {nodeAlias}.{timestampConfig.ModifiedTimestampKey} = timestamp()");
+        }
     }
     #endregion
 

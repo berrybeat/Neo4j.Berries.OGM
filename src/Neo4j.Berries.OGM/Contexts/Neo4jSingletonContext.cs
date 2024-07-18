@@ -22,7 +22,7 @@ internal class Neo4jSingletonContext
         _assemblies = builder.Assemblies;
         EnforceIdentifiers = builder.EnforceIdentifiers;
         PropertyCaseConverter = builder.PropertyCaseConverter ?? PropertyCaseConverter;
-        TimestampConfiguration ??= builder.TimestampConfiguration;
+        TimestampConfiguration = builder.TimestampConfiguration ?? TimestampConfiguration;
         ParseAssemblyForConfigurations();
         foreach (var config in builder.NodeSetConfigurations)
         {

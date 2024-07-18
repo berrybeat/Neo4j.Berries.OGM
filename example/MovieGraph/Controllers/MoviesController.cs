@@ -26,9 +26,9 @@ public class MoviesController(ApplicationGraphContext graphContext) : Controller
                 LastName = f.Name.LastName()
             });
         var stopwatch = new Stopwatch();
-        var movies = fake.Generate(100);
+        var movies = fake.Generate(1);
         stopwatch.Start();
-        graphContext.Movies.AddRange(movies);
+        graphContext.Movies.MergeRange(movies);
         await graphContext.SaveChangesAsync();
         stopwatch.Stop();
         return stopwatch.ElapsedMilliseconds;
