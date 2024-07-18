@@ -4,6 +4,7 @@ using Neo4j.Berries.OGM.Utils;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Driver;
 
 namespace Neo4j.Berries.OGM.Tests.Contexts;
 
@@ -313,7 +314,7 @@ public class GraphContextTests : TestBase
             .Match(x => x.Where(y => y.Id, person.Id))
             .WithRelation(x => x.Friends, x => x.Where(y => y.Id, person.Friends.First().Id))
             .ToList();
-        
+
         peopleSUT.Should().NotBeEmpty();
         var personSUT = peopleSUT.First();
         personSUT.Id.Should().Be(person.Id);
@@ -382,5 +383,52 @@ public class GraphContextTests : TestBase
             .Run("MATCH(director:Person)-[:DIRECTED]->(movie:Movie) WHERE movie.Id=$id return director", new { id = id.ToString() })
             .ToList();
         records.Select(x => x.Values).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Should_Create_Node_With_Timestamps()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        var id = Guid.NewGuid();
+        var movie = new Dictionary<string, object> {
+            { "Id", id },
+            { "Name", "Matrix" }
+        };
+
+        TestGraphContext.Anonymous("Movie").Merge(movie);
+        TestGraphContext.SaveChanges();
+        var records = TestGraphContext
+            .Database
+            .Session
+            .Run("MATCH(movie:Movie) WHERE movie.Id=$id return movie", new { id = id.ToString() })
+            .ToList();
+        var movieRecords = records.Select(x => x.Convert<Dictionary<string, object>>("movie")).ToList().First();
+        movieRecords.Should().ContainKey("createdOn");
+    }
+
+    [Fact]
+    public void Should_Create_Relation_With_Timestamp()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        var id = Guid.NewGuid();
+        var movie = new Dictionary<string, object> {
+            { "Id", id },
+            { "Name", "Matrix" },
+            { "Director", new Dictionary<string, object> {
+                { "Id", Guid.NewGuid() },
+                { "FirstName", "Lana" },
+                { "LastName", "Wachowski" }
+            } }
+        };
+
+        TestGraphContext.Anonymous("Movie").Merge(movie);
+        TestGraphContext.SaveChanges();
+        var records = TestGraphContext
+            .Database
+            .Session
+            .Run("MATCH(director:Person)-[r:DIRECTED]->(movie:Movie) WHERE movie.Id=$id return r", new { id = id.ToString() })
+            .ToList();
+        var movieRecord = records.Select(x => x.Values.Select(y => y.Value as IRelationship)).SelectMany(x => x).ToList().First();
+        movieRecord.Properties.Should().ContainKey("createdOn");   
     }
 }
