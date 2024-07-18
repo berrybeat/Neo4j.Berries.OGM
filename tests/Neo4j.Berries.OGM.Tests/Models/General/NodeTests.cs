@@ -767,4 +767,173 @@ public class NodeSetTests : TestBase
             )
             """);
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void On_Merging_Group_Relations_Timestamps_Should_Be_Added(bool enforceModifiedTimestampKey)
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = enforceModifiedTimestampKey;
+
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new List<Dictionary<string, object>> {
+                            new () { { "LicensePlate", "AB123" }, { "Brand", "BMW" } },
+                            new () { { "LicensePlate", "ES123" } },
+                        }
+                    }
+                }}
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        if (enforceModifiedTimestampKey == false)
+            sut.Trim().Should().Be("""
+            UNWIND $people AS muv_0
+            MERGE (m_0:Person {Id: muv_0.Id})
+            ON CREATE SET m_0.createdOn=timestamp()
+            ON MATCH SET m_0.modifiedOn=timestamp()
+            SET m_0.FirstName=muv_0.FirstName
+            FOREACH (ignored IN CASE WHEN muv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
+            FOREACH (muv_0_1_0 IN muv_0.Resources.Room |
+            MERGE (m_0_1_0:Room {Number: muv_0_1_0.Number})
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            MERGE (m_0)-[r_0:USES]->(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            FOREACH (muv_0_1_0 IN muv_0.Resources.Car |
+            MERGE (m_0_1_0:Car {LicensePlate: muv_0_1_0.LicensePlate})
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Brand=muv_0_1_0.Brand
+            MERGE (m_0)-[r_0:USES]->(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            )
+            """);
+        else
+            sut.Trim().Should().Be("""
+            UNWIND $people AS muv_0
+            MERGE (m_0:Person {Id: muv_0.Id})
+            ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
+            ON MATCH SET m_0.modifiedOn=timestamp()
+            SET m_0.FirstName=muv_0.FirstName
+            FOREACH (ignored IN CASE WHEN muv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
+            FOREACH (muv_0_1_0 IN muv_0.Resources.Room |
+            MERGE (m_0_1_0:Room {Number: muv_0_1_0.Number})
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            MERGE (m_0)-[r_0:USES]->(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            FOREACH (muv_0_1_0 IN muv_0.Resources.Car |
+            MERGE (m_0_1_0:Car {LicensePlate: muv_0_1_0.LicensePlate})
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Brand=muv_0_1_0.Brand
+            MERGE (m_0)-[r_0:USES]->(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            )
+            """);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void On_Creating_Group_Relations_Timestamps_Should_Be_Added(bool enforceModifiedTimestampKey)
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = enforceModifiedTimestampKey;
+
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new List<Dictionary<string, object>> {
+                            new () { { "LicensePlate", "AB123" }, { "Brand", "BMW" } },
+                            new () { { "LicensePlate", "ES123" } },
+                        }
+                    }
+                }}
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Create(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        if (enforceModifiedTimestampKey == false)
+            sut.Trim().Should().Be("""
+            UNWIND $people AS cuv_0
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp()
+            FOREACH (ignored IN CASE WHEN cuv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
+            FOREACH (muv_0_1_0 IN cuv_0.Resources.Room |
+            MERGE (m_0_1_0:Room {Number: muv_0_1_0.Number})
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            CREATE (c_0)-[r_0:USES]->(m_0_1_0)
+            SET r_0.createdOn=timestamp()
+            )
+            FOREACH (muv_0_1_0 IN cuv_0.Resources.Car |
+            MERGE (m_0_1_0:Car {LicensePlate: muv_0_1_0.LicensePlate})
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Brand=muv_0_1_0.Brand
+            CREATE (c_0)-[r_0:USES]->(m_0_1_0)
+            SET r_0.createdOn=timestamp()
+            )
+            )
+            """);
+        else
+            sut.Trim().Should().Be("""
+            UNWIND $people AS cuv_0
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
+            FOREACH (ignored IN CASE WHEN cuv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
+            FOREACH (muv_0_1_0 IN cuv_0.Resources.Room |
+            MERGE (m_0_1_0:Room {Number: muv_0_1_0.Number})
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            CREATE (c_0)-[r_0:USES]->(m_0_1_0)
+            SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            )
+            FOREACH (muv_0_1_0 IN cuv_0.Resources.Car |
+            MERGE (m_0_1_0:Car {LicensePlate: muv_0_1_0.LicensePlate})
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Brand=muv_0_1_0.Brand
+            CREATE (c_0)-[r_0:USES]->(m_0_1_0)
+            SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            )
+            )
+            """);
+    }
 }

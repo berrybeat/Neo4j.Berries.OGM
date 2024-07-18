@@ -248,7 +248,31 @@ internal class Node(string label, int depth = 0)
             cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key}.{member.Key} |");
             var targetNodeAlias = member.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
             var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+            if (timestampConfig.Enabled)
+            {
+                var relationAlias = ComputeAlias("r", nodeSetIndex, relationIndex);
+                cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format(relationAlias)}({targetNodeAlias})");
+                if (relationAction == "MERGE")
+                {
+                    if (timestampConfig.EnforceModifiedTimestampKey)
+                        cypherBuilder.AppendLine($"ON CREATE SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp(), {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                    else
+                        cypherBuilder.AppendLine($"ON CREATE SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                    cypherBuilder.AppendLine($"ON MATCH SET {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                }
+                else
+                {
+                    cypherBuilder.Append($"SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                    if (timestampConfig.EnforceModifiedTimestampKey)
+                        cypherBuilder.Append($", {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                    cypherBuilder.AppendLine();
+                }
+            }
+            else
+            {
+                cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            }
             cypherBuilder.AppendLine(")");
         }
         cypherBuilder.AppendLine(")");
@@ -274,25 +298,22 @@ internal class Node(string label, int depth = 0)
     }
     private static void AppendWithSetProperties(StringBuilder cypherBuilder, string alias, string variable, IEnumerable<string> properties, bool isMerge)
     {
+        var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+        if (isMerge && timestampConfig.Enabled)
+        {
+            cypherBuilder.AppendLine();
+            cypherBuilder.Append($"ON CREATE SET {alias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+            if (timestampConfig.EnforceModifiedTimestampKey)
+            {
+                cypherBuilder.Append($", {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+            }
+            cypherBuilder.AppendLine();
+            cypherBuilder.AppendLine($"ON MATCH SET {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+        }
         if (properties.Any())
         {
-            var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
-            if (isMerge && timestampConfig.Enabled)
-            {
-                cypherBuilder.AppendLine();
-                cypherBuilder.Append($"ON CREATE SET {alias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
-                if (timestampConfig.EnforceModifiedTimestampKey)
-                {
-                    cypherBuilder.Append($", {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
-                }
-                cypherBuilder.AppendLine();
-                cypherBuilder.AppendLine($"ON MATCH SET {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
-                cypherBuilder.Append("SET ");
-            }
-            else
-            {
-                cypherBuilder.Append(" SET ");
-            }
+            if (isMerge && timestampConfig.Enabled) cypherBuilder.Append("SET ");
+            else cypherBuilder.Append(" SET ");
             cypherBuilder.Append(string.Join(", ", properties.Select(x => $"{alias}.{x}={variable}.{x}")));
             if (timestampConfig.Enabled && !isMerge)
             {
@@ -302,8 +323,22 @@ internal class Node(string label, int depth = 0)
                     cypherBuilder.Append($", {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
                 }
             }
+            cypherBuilder.AppendLine();
         }
-        cypherBuilder.AppendLine();
+        else if (timestampConfig.Enabled && !isMerge)
+        {
+            cypherBuilder.Append(" SET ");
+            cypherBuilder.Append($"{alias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+            if (timestampConfig.EnforceModifiedTimestampKey)
+            {
+                cypherBuilder.Append($", {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+            }
+            cypherBuilder.AppendLine();
+        }
+        else if(!timestampConfig.Enabled)
+        {
+            cypherBuilder.AppendLine();
+        }
     }
 
     private string ComputeAlias(string prefix, int nodeSetIndex, int index, int? _depth = null)
