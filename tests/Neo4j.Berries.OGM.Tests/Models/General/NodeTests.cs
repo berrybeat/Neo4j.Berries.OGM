@@ -7,7 +7,7 @@ using Neo4j.Berries.OGM.Tests.Common;
 
 namespace Neo4j.Berries.OGM.Tests.Models.General;
 
-public class NodeSetTests : TestBase
+public class NodeTests : TestBase
 {
     [Fact]
     public void Should_Consider_Properties_And_Identifiers()

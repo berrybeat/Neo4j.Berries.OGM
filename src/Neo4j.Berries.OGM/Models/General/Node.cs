@@ -36,13 +36,12 @@ internal class Node(string label, int depth = 0)
             .SelectMany(x => x)
             .Where(x => x.Value != null)
             .Where(x => !NodeConfig.Relations.ContainsKey(x.Key))
-            .Select(x => x.Key)
-            .Where(x => !Identifiers.Contains(x) && !Properties.Contains(x))
-            .Distinct();
-        Properties.AddRange(props.Where(x => !NodeConfig.Identifiers.Contains(x)));
+            .Where(x => !Properties.Contains(x.Key))
+            .Select(x => x.Key);
+        Properties.AddRange(props.Distinct().Where(x => !NodeConfig.Identifiers.Contains(x)));
         var identifiers = props.Where(x => NodeConfig.Identifiers.Contains(x));
-        Identifiers.AddRange(props.Where(x => NodeConfig.Identifiers.Contains(x)));
-        if (!identifiers.Any() && Neo4jSingletonContext.EnforceIdentifiers)
+        Identifiers.AddRange(props.Distinct().Where(x => NodeConfig.Identifiers.Contains(x)));
+        if (identifiers.Count() != nodes.Count() && Neo4jSingletonContext.EnforceIdentifiers)
             throw new InvalidOperationException($"Identifiers are enforced but not provided in the data. Label: {label}");
     }
 
