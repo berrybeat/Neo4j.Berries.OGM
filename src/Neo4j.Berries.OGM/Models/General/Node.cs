@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading.Tasks.Dataflow;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
@@ -139,37 +138,15 @@ internal class Node(string label, int depth = 0)
         var relationAction = shouldMerge ? "MERGE" : "CREATE";
         foreach (var relation in MultipleRelations)
         {
-            var index = MultipleRelations.Keys.ToList().IndexOf(relation.Key);
-            var variable = ComputeAlias("muv", nodeSetIndex, index, depth + 1);
-            cypherBuilder.AppendLine($"FOREACH ({variable} IN {unwindVariable}.{relation.Key} |");
-            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, variable, nodeSetIndex, index);
-            var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
-            cypherBuilder.AppendLine(")");
+            AppendMultipleRelationCypher(cypherBuilder, relation, unwindVariable, alias, nodeSetIndex, relationAction);
         }
         foreach (var relation in SingleRelations)
         {
-            var index = SingleRelations.Keys.ToList().IndexOf(relation.Key);
-            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {unwindVariable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
-            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{unwindVariable}.{relation.Key}", nodeSetIndex, index);
-            var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
-            cypherBuilder.AppendLine(")");
+            AppendSingleRelationCypher(cypherBuilder, relation, unwindVariable, alias, nodeSetIndex, relationAction);
         }
         foreach (var relation in GroupRelations)
         {
-            var relationIndex = GroupRelations.Keys.ToList().IndexOf(relation.Key);
-            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {unwindVariable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
-            foreach (var member in relation.Value)
-            {
-                var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, relationIndex, depth + 1);
-                cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {unwindVariable}.{relation.Key}.{member.Key} |");
-                var targetNodeAlias = member.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
-                var relationConfig = NodeConfig.Relations[relation.Key];
-                cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
-                cypherBuilder.AppendLine(")");
-            }
-            cypherBuilder.AppendLine(")");
+            AppendGroupRelationCypher(cypherBuilder, relation, unwindVariable, alias, nodeSetIndex, relationAction);
         }
     }
     public string MergeRelations(StringBuilder cypherBuilder, string variable, int nodeSetIndex, int index)
@@ -178,39 +155,78 @@ internal class Node(string label, int depth = 0)
         MergeProperties(alias, variable, cypherBuilder);
         foreach (var relation in MultipleRelations)
         {
-            var relationIndex = MultipleRelations.Keys.ToList().IndexOf(relation.Key);
-            var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, relationIndex, depth + 1);
-            cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key} |");
-            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
-            var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
-            cypherBuilder.AppendLine(")");
+            AppendMultipleRelationCypher(cypherBuilder, relation, variable, alias, nodeSetIndex);
         }
         foreach (var relation in SingleRelations)
         {
-            var relationIndex = SingleRelations.Keys.ToList().IndexOf(relation.Key);
-            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {variable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
-            var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{variable}.{relation.Key}", nodeSetIndex, relationIndex);
-            var relationConfig = NodeConfig.Relations[relation.Key];
-            cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
-            cypherBuilder.AppendLine(")");
+            AppendSingleRelationCypher(cypherBuilder, relation, variable, alias, nodeSetIndex);
         }
         foreach (var relation in GroupRelations)
         {
-            var relationIndex = GroupRelations.Keys.ToList().IndexOf(relation.Key);
-            cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {variable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
-            foreach (var member in relation.Value)
-            {
-                var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, relationIndex, depth + 1);
-                cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key}.{member.Key} |");
-                var targetNodeAlias = member.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
-                var relationConfig = NodeConfig.Relations[relation.Key];
-                cypherBuilder.AppendLine($"MERGE ({alias}){relationConfig.Format()}({targetNodeAlias})");
-                cypherBuilder.AppendLine(")");
-            }
-            cypherBuilder.AppendLine(")");
+            AppendGroupRelationCypher(cypherBuilder, relation, variable, alias, nodeSetIndex);
         }
         return alias;
+    }
+
+    private void AppendSingleRelationCypher(StringBuilder cypherBuilder, KeyValuePair<string, Node> relation, string variable, string alias, int nodeSetIndex, string relationAction = "MERGE")
+    {
+        var relationIndex = SingleRelations.Keys.ToList().IndexOf(relation.Key);
+        cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {variable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
+        var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, $"{variable}.{relation.Key}", nodeSetIndex, relationIndex);
+        var relationConfig = NodeConfig.Relations[relation.Key];
+        var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+        if (timestampConfig.Enabled)
+        {
+            var relationAlias = ComputeAlias("r", nodeSetIndex, relationIndex);
+            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format(relationAlias)}({targetNodeAlias})");
+            if (relationAction == "MERGE")
+            {
+                if (timestampConfig.EnforceModifiedTimestampKey)
+                    cypherBuilder.AppendLine($"ON CREATE SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp(), {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                else
+                    cypherBuilder.AppendLine($"ON CREATE SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                cypherBuilder.AppendLine($"ON MATCH SET {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+            }
+            else
+            {
+                cypherBuilder.Append($"SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                if (timestampConfig.EnforceModifiedTimestampKey)
+                    cypherBuilder.Append($", {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                cypherBuilder.AppendLine();
+            }
+        }
+        else
+        {
+            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+        }
+        cypherBuilder.AppendLine(")");
+    }
+
+    private void AppendMultipleRelationCypher(StringBuilder cypherBuilder, KeyValuePair<string, Node> relation, string variable, string alias, int nodeSetIndex, string relationAction = "MERGE")
+    {
+        var index = MultipleRelations.Keys.ToList().IndexOf(relation.Key);
+        var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, index, depth + 1);
+        cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key} |");
+        var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, index);
+        var relationConfig = NodeConfig.Relations[relation.Key];
+        cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+        cypherBuilder.AppendLine(")");
+    }
+
+    private void AppendGroupRelationCypher(StringBuilder cypherBuilder, KeyValuePair<string, Dictionary<string, Node>> relation, string variable, string alias, int nodeSetIndex, string relationAction = "MERGE")
+    {
+        var relationIndex = GroupRelations.Keys.ToList().IndexOf(relation.Key);
+        cypherBuilder.AppendLine($"FOREACH (ignored IN CASE WHEN {variable}.{relation.Key} IS NOT NULL THEN [1] ELSE [] END |");
+        foreach (var member in relation.Value)
+        {
+            var nextDepthVariable = ComputeAlias("muv", nodeSetIndex, relationIndex, depth + 1);
+            cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key}.{member.Key} |");
+            var targetNodeAlias = member.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, relationIndex);
+            var relationConfig = NodeConfig.Relations[relation.Key];
+            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+            cypherBuilder.AppendLine(")");
+        }
+        cypherBuilder.AppendLine(")");
     }
 
     private void CreateProperties(string alias, string variable, StringBuilder cypherBuilder)

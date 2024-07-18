@@ -538,15 +538,121 @@ public class NodeSetTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Create(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
-        if(enforceModifiedTimestampKey)
+        if (enforceModifiedTimestampKey)
             sut.Trim().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
             """);
-        else 
+        else
             sut.Trim().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp()
+            """);
+    }
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Extend_Cypher_With_ModifiedOn_And_CreatedOn_On_Merging_Relations(bool enforceModifiedTimestampKey)
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = enforceModifiedTimestampKey;
+        var node = new Node("Movie");
+        node.Consider([
+            new () { { "Name", "The Matrix" }, { "ReleaseDate", new DateTime(1999, 3, 31) } },
+            new () {
+                { "Name", "The Matrix Reloaded" },
+                { "ReleaseDate", new DateTime(2003, 5, 15) },
+                { "Director", new Dictionary<string, object> {
+                    { "FirstName", "Lana" },
+                    { "LastName", "Wachowski" }
+                } } },
+        ]);
+
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$movies", 0);
+        var sut = cypherBuilder.ToString();
+        if (!enforceModifiedTimestampKey)
+            sut.Trim().Should().Be("""
+            UNWIND $movies AS muv_0
+            MERGE (m_0:Movie)
+            ON CREATE SET m_0.createdOn=timestamp()
+            ON MATCH SET m_0.modifiedOn=timestamp()
+            SET m_0.Name=muv_0.Name, m_0.ReleaseDate=muv_0.ReleaseDate
+            FOREACH (ignored IN CASE WHEN muv_0.Director IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (m_0_1_0:Person)
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.FirstName=muv_0.Director.FirstName, m_0_1_0.LastName=muv_0.Director.LastName
+            MERGE (m_0)<-[r_0:DIRECTED]-(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            """);
+        else
+            sut.Trim().Should().Be("""
+            UNWIND $movies AS muv_0
+            MERGE (m_0:Movie)
+            ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
+            ON MATCH SET m_0.modifiedOn=timestamp()
+            SET m_0.Name=muv_0.Name, m_0.ReleaseDate=muv_0.ReleaseDate
+            FOREACH (ignored IN CASE WHEN muv_0.Director IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (m_0_1_0:Person)
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.FirstName=muv_0.Director.FirstName, m_0_1_0.LastName=muv_0.Director.LastName
+            MERGE (m_0)<-[r_0:DIRECTED]-(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            """);
+    }
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void On_Creating_Single_Relation_Should_Only_Use_Set_And_No_OnMatch_Or_OnCreate(bool enforceModifiedTimestampKey)
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = enforceModifiedTimestampKey;
+        var node = new Node("Movie");
+        node.Consider([
+            new () { { "Name", "The Matrix" }, { "ReleaseDate", new DateTime(1999, 3, 31) } },
+            new () {
+                { "Name", "The Matrix Reloaded" },
+                { "ReleaseDate", new DateTime(2003, 5, 15) },
+                { "Director", new Dictionary<string, object> {
+                    { "FirstName", "Lana" },
+                    { "LastName", "Wachowski" }
+                } } },
+        ]);
+
+        var cypherBuilder = new StringBuilder();
+        node.Create(cypherBuilder, "$movies", 0);
+        var sut = cypherBuilder.ToString();
+        if (!enforceModifiedTimestampKey)
+            sut.Trim().Should().Be("""
+            UNWIND $movies AS cuv_0
+            CREATE (c_0:Movie) SET c_0.Name=cuv_0.Name, c_0.ReleaseDate=cuv_0.ReleaseDate, c_0.createdOn=timestamp()
+            FOREACH (ignored IN CASE WHEN cuv_0.Director IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (m_0_1_0:Person)
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.FirstName=cuv_0.Director.FirstName, m_0_1_0.LastName=cuv_0.Director.LastName
+            CREATE (c_0)<-[r_0:DIRECTED]-(m_0_1_0)
+            SET r_0.createdOn=timestamp()
+            )
+            """);
+        else
+            sut.Trim().Should().Be("""
+            UNWIND $movies AS cuv_0
+            CREATE (c_0:Movie) SET c_0.Name=cuv_0.Name, c_0.ReleaseDate=cuv_0.ReleaseDate, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
+            FOREACH (ignored IN CASE WHEN cuv_0.Director IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (m_0_1_0:Person)
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.FirstName=cuv_0.Director.FirstName, m_0_1_0.LastName=cuv_0.Director.LastName
+            CREATE (c_0)<-[r_0:DIRECTED]-(m_0_1_0)
+            SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            )
             """);
     }
 }
