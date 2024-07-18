@@ -628,7 +628,7 @@ public class NodeSetTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Create(cypherBuilder, "$movies", 0);
         var sut = cypherBuilder.ToString();
-        if (!enforceModifiedTimestampKey)
+        if (enforceModifiedTimestampKey == false)
             sut.Trim().Should().Be("""
             UNWIND $movies AS cuv_0
             CREATE (c_0:Movie) SET c_0.Name=cuv_0.Name, c_0.ReleaseDate=cuv_0.ReleaseDate, c_0.createdOn=timestamp()
@@ -651,6 +651,118 @@ public class NodeSetTests : TestBase
             ON MATCH SET m_0_1_0.modifiedOn=timestamp()
             SET m_0_1_0.FirstName=cuv_0.Director.FirstName, m_0_1_0.LastName=cuv_0.Director.LastName
             CREATE (c_0)<-[r_0:DIRECTED]-(m_0_1_0)
+            SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            )
+            """);
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void On_Merging_Multiple_Relations_Timestamps_Should_Be_Added(bool enforceModifiedTimestampKey)
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = enforceModifiedTimestampKey;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "MoviesAsActor", new List<Dictionary<string, object>> {
+                    new () { { "Name", "Movie 1" } },
+                    new () { { "Name", "Movie 2" } },
+                    new () { { "Name", "Movie 2" }, {"ReleaseDate", new DateTime(1990, 05, 10) } },
+                } } },
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "Jake" }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Merge(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        if (enforceModifiedTimestampKey == false)
+            sut.Trim().Should().Be("""
+            UNWIND $people AS muv_0
+            MERGE (m_0:Person {Id: muv_0.Id})
+            ON CREATE SET m_0.createdOn=timestamp()
+            ON MATCH SET m_0.modifiedOn=timestamp()
+            SET m_0.FirstName=muv_0.FirstName
+            FOREACH (muv_0_1_0 IN muv_0.MoviesAsActor |
+            MERGE (m_0_1_0:Movie)
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
+            MERGE (m_0)-[r_0:ACTED_IN]->(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            """);
+        else
+            sut.Trim().Should().Be("""
+            UNWIND $people AS muv_0
+            MERGE (m_0:Person {Id: muv_0.Id})
+            ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
+            ON MATCH SET m_0.modifiedOn=timestamp()
+            SET m_0.FirstName=muv_0.FirstName
+            FOREACH (muv_0_1_0 IN muv_0.MoviesAsActor |
+            MERGE (m_0_1_0:Movie)
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
+            MERGE (m_0)-[r_0:ACTED_IN]->(m_0_1_0)
+            ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp()
+            )
+            """);
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void On_Creating_Multi_Relations_Timestamps_Should_Be_Added(bool enforceModifiedTimestampKey)
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = enforceModifiedTimestampKey;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "MoviesAsActor", new List<Dictionary<string, object>> {
+                    new () { { "Name", "Movie 1" } },
+                    new () { { "Name", "Movie 2" } },
+                    new () { { "Name", "Movie 2" }, {"ReleaseDate", new DateTime(1990, 05, 10) } },
+                } } },
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "Jake" }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Create(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        if (enforceModifiedTimestampKey == false)
+            sut.Trim().Should().Be("""
+            UNWIND $people AS cuv_0
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp()
+            FOREACH (muv_0_1_0 IN cuv_0.MoviesAsActor |
+            MERGE (m_0_1_0:Movie)
+            ON CREATE SET m_0_1_0.createdOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
+            CREATE (c_0)-[r_0:ACTED_IN]->(m_0_1_0)
+            SET r_0.createdOn=timestamp()
+            )
+            """);
+        else
+            sut.Trim().Should().Be("""
+            UNWIND $people AS cuv_0
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
+            FOREACH (muv_0_1_0 IN cuv_0.MoviesAsActor |
+            MERGE (m_0_1_0:Movie)
+            ON CREATE SET m_0_1_0.createdOn=timestamp(), m_0_1_0.modifiedOn=timestamp()
+            ON MATCH SET m_0_1_0.modifiedOn=timestamp()
+            SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
+            CREATE (c_0)-[r_0:ACTED_IN]->(m_0_1_0)
             SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
             )
             """);

@@ -209,7 +209,32 @@ internal class Node(string label, int depth = 0)
         cypherBuilder.AppendLine($"FOREACH ({nextDepthVariable} IN {variable}.{relation.Key} |");
         var targetNodeAlias = relation.Value.MergeRelations(cypherBuilder, nextDepthVariable, nodeSetIndex, index);
         var relationConfig = NodeConfig.Relations[relation.Key];
-        cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+        var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+        if (timestampConfig.Enabled)
+        {
+            var relationAlias = ComputeAlias("r", nodeSetIndex, index);
+            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format(relationAlias)}({targetNodeAlias})");
+            if (relationAction == "MERGE")
+            {
+                if (timestampConfig.EnforceModifiedTimestampKey)
+                    cypherBuilder.AppendLine($"ON CREATE SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp(), {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                else
+                    cypherBuilder.AppendLine($"ON CREATE SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                cypherBuilder.AppendLine($"ON MATCH SET {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+            }
+            else
+            {
+                cypherBuilder.Append($"SET {relationAlias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                if (timestampConfig.EnforceModifiedTimestampKey)
+                    cypherBuilder.Append($", {relationAlias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                cypherBuilder.AppendLine();
+            }
+        }
+        else
+        {
+            cypherBuilder.AppendLine($"{relationAction} ({alias}){relationConfig.Format()}({targetNodeAlias})");
+
+        }
         cypherBuilder.AppendLine(")");
     }
 
