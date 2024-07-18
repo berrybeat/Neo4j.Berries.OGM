@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Text;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Contexts;
@@ -519,5 +520,33 @@ public class NodeSetTests : TestBase
         ON MATCH SET m_0.ModifiedOn=timestamp()
         SET m_0.FirstName=muv_0.FirstName
         """);
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_Extend_Cypher_With_CreatedOn_For_Nodes_On_Add(bool enforceModifiedTimestampKey)
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.TimestampConfiguration.EnforceModifiedTimestampKey = enforceModifiedTimestampKey;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.Create(cypherBuilder, "$people", 0);
+        var sut = cypherBuilder.ToString();
+        if(enforceModifiedTimestampKey)
+            sut.Trim().Should().Be("""
+            UNWIND $people AS cuv_0
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.CreatedOn=timestamp(), c_0.ModifiedOn=timestamp()
+            """);
+        else 
+            sut.Trim().Should().Be("""
+            UNWIND $people AS cuv_0
+            CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.CreatedOn=timestamp()
+            """);
     }
 }

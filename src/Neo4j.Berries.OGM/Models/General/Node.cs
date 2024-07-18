@@ -253,6 +253,14 @@ internal class Node(string label, int depth = 0)
                 cypherBuilder.Append(" SET ");
             }
             cypherBuilder.Append(string.Join(", ", properties.Select(x => $"{alias}.{x}={variable}.{x}")));
+            if (timestampConfig.Enabled && !isMerge)
+            {
+                cypherBuilder.Append($", {alias}.{timestampConfig.CreatedTimestampKey}=timestamp()");
+                if (timestampConfig.EnforceModifiedTimestampKey)
+                {
+                    cypherBuilder.Append($", {alias}.{timestampConfig.ModifiedTimestampKey}=timestamp()");
+                }
+            }
         }
         cypherBuilder.AppendLine();
     }
