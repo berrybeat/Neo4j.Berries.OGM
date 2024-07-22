@@ -7,6 +7,9 @@ namespace Neo4j.Berries.OGM.Models.Sets;
 
 internal class Node(string label, int depth = 0)
 {
+    //This will be accessed from an upper level.
+    public string Label => label;
+    public int Depth => depth;
     public Dictionary<string, List<object>> Identifiers { get; set; } = [];
     public List<string> Properties { get; set; } = []; //These should be merged. If there is a parent, it will merge a relation too.
     public Dictionary<string, Node> SingleRelations { get; set; } = [];
@@ -116,6 +119,17 @@ internal class Node(string label, int depth = 0)
             nodeCollection.Add(memberKey ?? key, node);
         }
         return node;
+    }
+
+    public void ArchiveRelations(StringBuilder cypherBuilder, out Dictionary<string, object> variables)
+    {
+        variables = [];
+        foreach(var identifier in Identifiers)
+        {
+            var variableKey = $"{label.ToLower()}_{identifier.Key.ToLower()}_{depth}";
+            variables[variableKey] = identifier.Value;
+        }
+        ArchiveSingleRelations(cypherBuilder);
     }
 
     public void Create(StringBuilder cypherBuilder, string collection, int nodeSetIndex)
@@ -340,6 +354,29 @@ internal class Node(string label, int depth = 0)
         else if (!timestampConfig.Enabled)
         {
             cypherBuilder.AppendLine();
+        }
+    }
+
+    private void ArchiveSingleRelations(StringBuilder cypherBuilder)
+    {
+        var singleRelationsWithKeepHistory = SingleRelations.Where(x => NodeConfig.Relations[x.Key].KeepHistory);
+        ///Should only work if timestamps are enabled
+        ///Should throw exception if there is no identifier
+        foreach (var relation in singleRelationsWithKeepHistory)
+        {
+            var relationConfig = NodeConfig.Relations[relation.Key];
+            var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+            var relationAlias = ComputeAlias("r", depth, 0);
+            var nodeAlias = ComputeAlias("a", depth, 0);
+            cypherBuilder.Append($"MATCH({nodeAlias}:{Label} WHERE ");
+            cypherBuilder.Append(
+                string.Join(
+                    " AND ", 
+                    Identifiers.Select(x => $"{nodeAlias}.{x.Key} IN ${label.ToLower()}_{x.Key.ToLower()}_{depth}")
+                )
+            );
+            cypherBuilder.AppendLine($"){relationConfig.Format(relationAlias, $" WHERE {relationAlias}.{timestampConfig.ArchivedTimestampKey} IS null")}(:{relationConfig.EndNodeLabels[0]}) SET {relationAlias}.{timestampConfig.ArchivedTimestampKey}=timestamp()");
+            cypherBuilder.AppendLine("WITH 0 AS nothing");
         }
     }
 

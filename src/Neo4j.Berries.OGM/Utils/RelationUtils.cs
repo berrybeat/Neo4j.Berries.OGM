@@ -6,15 +6,15 @@ namespace Neo4j.Berries.OGM.Utils;
 
 internal static class RelationUtils
 {
-    internal static string Format(this IRelationConfiguration relation, string alias = null)
+    internal static string Format(this IRelationConfiguration relation, string alias = null, string condition = null)
     {
         if (relation.Direction == RelationDirection.Out)
         {
-            return $"-[{alias}:{relation.Label}]->";
+            return $"-[{alias}:{relation.Label}{condition}]->";
         }
         else
         {
-            return $"<-[{alias}:{relation.Label}]-";
+            return $"<-[{alias}:{relation.Label}{condition}]-";
         }
     }
 

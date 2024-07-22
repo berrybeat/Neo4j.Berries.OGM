@@ -1,4 +1,5 @@
 using System.Diagnostics.Contracts;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Contexts;
@@ -118,6 +119,23 @@ public class NodeTests : TestBase
 
         node.SingleRelations.Should().HaveCount(0);
     }
+
+    [Fact]
+    public void Should_Save_Identifier_Values()
+    {
+        var node = new Node("Person");
+        var guid1 = Guid.NewGuid().ToString();
+        var guid2 = Guid.NewGuid().ToString();
+        node.Consider([
+            new () { { "Id", guid1.ToString() }, { "FirstName", "John" } },
+            new () { { "Id", guid2.ToString() }, { "FirstName", "Jake" }, { "LastName", "Doe" } },
+        ]);
+        node.Identifiers.Should().HaveCount(1);
+        node.Identifiers.Should().ContainKey("Id");
+        node.Identifiers["Id"].Should().HaveCount(2);
+        node.Identifiers["Id"].Should().Contain(guid1, guid2);
+    }
+
     [Fact]
     public void Should_Throw_InvalidOperationException_When_Some_Group_Items_Are_Not_Collections()
     {
@@ -935,5 +953,38 @@ public class NodeTests : TestBase
             )
             )
             """);
+    }
+
+    [Fact]
+    public void Should_Archive_All_Root_Relations_If_Marked_As_KeepHistory()
+    {
+        Neo4jSingletonContext.Configs["Person"].Relations["Friends"].KeepHistory = true;
+        Neo4jSingletonContext.Configs["Person"].Relations["Address"].KeepHistory = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Friends", new List<Dictionary<string, object>> {
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" } },
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jane" } },
+                } },
+                { "Address", new Dictionary<string, object> {
+                    { "Street", "Street 1" },
+                } }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.ArchiveRelations(cypherBuilder, out var variables);
+        var cypher = cypherBuilder.ToString().Trim();
+        cypher.Should().Be("""
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        """);
+        variables.Should().ContainKey("person_id_0");
+        var identifiers = variables["person_id_0"] as List<object>;
+        identifiers.Should().HaveCount(1);
+        identifiers.Should().Contain(node.Identifiers["Id"]);
+
     }
 }
