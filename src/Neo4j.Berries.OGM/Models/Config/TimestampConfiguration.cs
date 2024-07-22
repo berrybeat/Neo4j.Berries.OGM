@@ -15,4 +15,8 @@ public class TimestampConfiguration()
     /// The key to use for setting the updated timestamp. Default: modifiedOn
     /// </summary>
     public string ModifiedTimestampKey { get; set; } = "modifiedOn";
+    /// <summary>
+    /// The key to use for setting the archived timestamp. Default: archivedOn
+    /// </summary>
+    public string ArchivedTimestampKey { get; set; } = "archivedOn";
 }

@@ -21,7 +21,7 @@ public class NodeTests : TestBase
         node.Properties.Should().Contain("FirstName", "LastName");
         node.Properties.Should().NotContain("Id");
         node.Identifiers.Should().HaveCount(1);
-        node.Identifiers.Should().Contain("Id");
+        node.Identifiers.Should().ContainKey("Id");
     }
     [Fact]
     public void Should_Consider_Single_Relations()
@@ -110,11 +110,11 @@ public class NodeTests : TestBase
 
         var room = node.GroupRelations["Resources"]["Room"];
         room.Identifiers.Should().HaveCount(1);
-        room.Identifiers.Should().Contain("Number");
+        room.Identifiers.Should().ContainKey("Number");
 
         var car = node.GroupRelations["Resources"]["Car"];
         car.Identifiers.Should().HaveCount(1);
-        car.Identifiers.Should().Contain("LicensePlate");
+        car.Identifiers.Should().ContainKey("LicensePlate");
 
         node.SingleRelations.Should().HaveCount(0);
     }

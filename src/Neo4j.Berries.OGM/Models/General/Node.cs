@@ -7,7 +7,7 @@ namespace Neo4j.Berries.OGM.Models.Sets;
 
 internal class Node(string label, int depth = 0)
 {
-    public List<string> Identifiers { get; set; } = [];
+    public Dictionary<string, List<object>> Identifiers { get; set; } = [];
     public List<string> Properties { get; set; } = []; //These should be merged. If there is a parent, it will merge a relation too.
     public Dictionary<string, Node> SingleRelations { get; set; } = [];
     public Dictionary<string, Node> MultipleRelations { get; set; } = [];
@@ -40,7 +40,10 @@ internal class Node(string label, int depth = 0)
             .Select(x => x.Key);
         Properties.AddRange(props.Distinct().Where(x => !NodeConfig.Identifiers.Contains(x)));
         var identifiers = props.Where(x => NodeConfig.Identifiers.Contains(x));
-        Identifiers.AddRange(props.Distinct().Where(x => NodeConfig.Identifiers.Contains(x)));
+        foreach (var identifier in identifiers.Distinct())
+        {
+            Identifiers[identifier] = nodes.Where(x => x.ContainsKey(identifier)).Select(x => x[identifier]).ToList();
+        }
         if (identifiers.Count() != nodes.Count() && Neo4jSingletonContext.EnforceIdentifiers)
             throw new InvalidOperationException($"Identifiers are enforced but not provided in the data. Label: {label}");
     }
@@ -280,7 +283,7 @@ internal class Node(string label, int depth = 0)
     private void CreateProperties(string alias, string variable, StringBuilder cypherBuilder)
     {
         cypherBuilder.Append($"CREATE ({alias}:{label})");
-        var properties = Identifiers.Concat(Properties);
+        var properties = Identifiers.Keys.Concat(Properties);
         AppendWithSetProperties(cypherBuilder, alias, variable, properties, false);
     }
     private void MergeProperties(string alias, string variable, StringBuilder cypherBuilder)
@@ -289,7 +292,7 @@ internal class Node(string label, int depth = 0)
         if (Identifiers.Count > 0)
         {
             cypherBuilder.Append(" {");
-            cypherBuilder.Append(string.Join(", ", Identifiers.Select(x => $"{x}: {variable}.{x}")));
+            cypherBuilder.Append(string.Join(", ", Identifiers.Keys.Select(x => $"{x}: {variable}.{x}")));
             cypherBuilder.Append('}');
         }
         cypherBuilder.Append(')');
@@ -334,7 +337,7 @@ internal class Node(string label, int depth = 0)
             }
             cypherBuilder.AppendLine();
         }
-        else if(!timestampConfig.Enabled)
+        else if (!timestampConfig.Enabled)
         {
             cypherBuilder.AppendLine();
         }

@@ -99,6 +99,8 @@ public class NodeSet : INodeSet
     public void BuildCypher()
     {
         MergeNode?.Consider(MergeNodes.Select(x => x as Dictionary<string, object>));
+        //Here we should tell the MergeNode to generate the archived cypher. After consider it has to be able recognize such relations first.
+        //This feature works only if the timestamps are enabled.
         MergeNode?.Merge(CreationCypherBuilder, $"${Name}_merges", NodeSetIndex);
         NewNode?.Consider(NewNodes.Select(x => x as Dictionary<string, object>));
         NewNode?.Create(CreationCypherBuilder, $"${Name}_creates", NodeSetIndex);
