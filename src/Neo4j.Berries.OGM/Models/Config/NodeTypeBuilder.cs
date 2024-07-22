@@ -59,6 +59,30 @@ where TNode : class
         Exclude(expression);
         return relationConfig;
     }
+
+    /// <summary>
+    /// The property will be used to create a relation with another node
+    /// </summary>
+    public RelationConfiguration<TNode, TProperty> HasRelationWithSingle<TProperty>(Expression<Func<TNode, TProperty>> expression, RelationConfiguration<TNode, TProperty> configuration)
+    where TProperty : class
+    {
+        var propertyName = ((MemberExpression)expression.Body).Member.Name;
+        Config.Relations[propertyName] = configuration;
+        Exclude(expression);
+        return configuration;
+    }
+    /// <summary>
+    /// The property will be used to create a relation with another nodes
+    /// </summary>
+    public RelationConfiguration<TNode, TProperty> HasRelationWithMultiple<TProperty>(Expression<Func<TNode, IEnumerable<TProperty>>> expression, RelationConfiguration<TNode, TProperty> configuration)
+    where TProperty : class
+    {
+        var propertyName = ((MemberExpression)expression.Body).Member.Name;
+        Config.Relations[propertyName] = configuration;
+        Exclude(expression);
+        return configuration;
+    }
+
     /// <summary>
     /// The property will be included in the node. If exclude is used, include will be ignored
     /// </summary>

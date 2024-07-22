@@ -8,6 +8,9 @@ where TNode : class
 {
     internal IEnumerable<string> IncludedProperties { get; private set; } = [];
 
+    /// <summary>
+    /// Includes the given properties for mapping in MergeConfiguration
+    /// </summary>
     public MergeConfiguration<TNode> Include<TProperty>(params Expression<Func<TNode, TProperty>>[] properties)
     {
         var mergeProperties = properties.Select(x => Neo4jSingletonContext.PropertyCaseConverter(((MemberExpression)x.Body).Member.Name));

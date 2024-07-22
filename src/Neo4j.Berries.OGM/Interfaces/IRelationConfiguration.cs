@@ -8,4 +8,5 @@ public interface IRelationConfiguration
     RelationDirection Direction { get; }
     string[] EndNodeLabels { get; }
     IEnumerable<string> EndNodeMergeProperties { get; }
+    bool KeepHistory { get; set; }
 }

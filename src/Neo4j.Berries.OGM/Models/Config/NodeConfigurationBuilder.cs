@@ -93,6 +93,18 @@ public class NodeConfigurationBuilder
         ExcludeProperties(property);
         return this;
     }
+    /// <summary>
+    /// Adds a relation configuration to the NodeConfiguration
+    /// </summary>
+    /// <param name="property">The property name which this configuration is for</param>
+    /// <param name="configuration">Custom relation configuration</param>
+    /// <exception cref="InvalidOperationException">If the property is already included</exception>
+    public NodeConfigurationBuilder HasRelation(string property, RelationConfiguration configuration)
+    {
+        NodeConfiguration.Relations[property] = configuration;
+        ExcludeProperties(property);
+        return this;
+    }
 
     /// <summary>
     /// The property will be used as an identifier for the node.

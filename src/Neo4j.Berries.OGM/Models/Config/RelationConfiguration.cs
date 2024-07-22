@@ -1,5 +1,3 @@
-using System.Linq;
-using System.Reflection;
 using Neo4j.Berries.OGM.Enums;
 using Neo4j.Berries.OGM.Interfaces;
 
@@ -9,11 +7,27 @@ public class RelationConfiguration<TStart, TEnd> : IRelationConfiguration
 where TStart : class
 where TEnd : class
 {
+    /// <summary>
+    /// The label of the relation
+    /// </summary>
     public string Label { get; }
+    /// <summary>
+    /// The direction of the relation
+    /// </summary>
     public RelationDirection Direction { get; }
+    /// <summary>
+    /// If there is merge with the end node, it can be configured how the merge should be done
+    /// </summary>
     private MergeConfiguration<TEnd> EndNodeMergeConfig { get; } = new MergeConfiguration<TEnd>();
     public IEnumerable<string> EndNodeMergeProperties => EndNodeMergeConfig.IncludedProperties;
+    /// <summary>
+    /// The labels of the end nodes
+    /// </summary>
     public string[] EndNodeLabels { get; private set; } = [];
+    /// <summary>
+    /// If true, the history of the relation will be kept. It will set all the non archived relations to archived.
+    /// </summary>
+    public bool KeepHistory { get; set; } = false;
 
     public RelationConfiguration(string label, RelationDirection direction)
     {
@@ -50,5 +64,12 @@ public class RelationConfiguration(string[] endNodeLabels, string label, Relatio
     public string Label => label;
     public RelationDirection Direction => direction;
     public string[] EndNodeLabels => endNodeLabels;
+    /// <summary>
+    /// For the anonymous relations, this option is not available.
+    /// </summary>
     public IEnumerable<string> EndNodeMergeProperties => [];
+    /// <summary>
+    /// If true, the history of the relation will be kept. It will set all the non archived relations to archived.
+    /// </summary>
+    public bool KeepHistory { get; set; } = false;
 }
