@@ -72,11 +72,6 @@ public static class ObjectUtils
                     continue;
                 }
             }
-            if (item.Value is null && recursion)
-            {
-                input.Remove(item.Key);
-                continue;
-            }
             input[item.Key] = item.Value.ToNeo4jValue();
         }
         return input;
