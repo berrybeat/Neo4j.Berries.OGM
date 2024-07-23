@@ -974,7 +974,7 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
         """);
         variables.Should().ContainKey("person_id_0");
@@ -1003,7 +1003,7 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
         """);
         variables.Should().ContainKey("person_id_0");
@@ -1045,9 +1045,9 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
         """);
         variables.Should().ContainKey("person_id_0");
@@ -1109,13 +1109,13 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
         """);
         variables.Should().ContainKey("person_id_0");
@@ -1169,7 +1169,7 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        MATCH(a_0_1_0:Person WHERE a_0_1_0.Id IN $person_id_1)-[r_0_1_0:LIVES_IN WHERE r_0_1_0.archivedOn IS null]->(:Address) SET r_0_1_0.archivedOn=timestamp()
+        OPTIONAL MATCH(a_0_1_0:Person WHERE a_0_1_0.Id IN $person_id_1)-[r_0_1_0:LIVES_IN WHERE r_0_1_0.archivedOn IS null]->(:Address) SET r_0_1_0.archivedOn=timestamp()
         WITH 0 AS nothing
         """);
         variables.Should().ContainKey("person_id_1");

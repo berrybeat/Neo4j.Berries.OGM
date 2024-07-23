@@ -150,7 +150,7 @@ internal class Node(string label, int depth = 0)
             var nodeAlias = ComputeAlias("a", nodeSetIndex, 0);
             foreach (var endNode in relationConfig.EndNodeLabels)
             {
-                cypherBuilder.Append($"MATCH({nodeAlias}:{Label} WHERE ");
+                cypherBuilder.Append($"OPTIONAL MATCH({nodeAlias}:{Label} WHERE ");
                 cypherBuilder.Append(
                     string.Join(
                         " AND ",
