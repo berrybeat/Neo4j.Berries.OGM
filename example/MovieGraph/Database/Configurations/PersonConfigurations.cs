@@ -11,6 +11,10 @@ public class PersonConfigurations : INodeConfiguration<Person>
     {
         builder.HasRelationWithMultiple(x => x.DirectedMovies, "DIRECTED", RelationDirection.Out);
         builder.HasRelationWithMultiple(x => x.ActedInMovies, "ACTED_IN", RelationDirection.Out);
+        builder.HasRelationWithSingle(x => x.Country, new("LIVES_IN", RelationDirection.Out)
+        {
+            KeepHistory = true
+        });
         builder.HasIdentifier(x => x.Id);
     }
 }
