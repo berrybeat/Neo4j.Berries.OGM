@@ -81,11 +81,27 @@ where TNode : class
         cypherBuilder.Clear();
     }
 
-    public void BuildCypher()
+    public void BuildCypher(Dictionary<string, object> parameters)
     {
         MergeNode?.Consider(MergeNodes.Select(x => x as Dictionary<string, object>));
-        MergeNode?.Merge(cypherBuilder, $"${Name}_merges", nodeSetIndex);
         NewNode?.Consider(NewNodes.Select(x => x as Dictionary<string, object>));
+        if (MergeNode != null)
+        {
+            MergeNode.ArchiveRelations(cypherBuilder, nodeSetIndex, out var mergeVariables);
+            foreach (var item in mergeVariables)
+            {
+                parameters.Add(item.Key, item.Value);
+            }
+        }
+        if (NewNode != null)
+        {
+            NewNode.ArchiveRelations(cypherBuilder, nodeSetIndex, out var createVariables);
+            foreach (var item in createVariables)
+            {
+                parameters.Add(item.Key, item.Value);
+            }
+        }
+        MergeNode?.Merge(cypherBuilder, $"${Name}_merges", nodeSetIndex);
         NewNode?.Create(cypherBuilder, $"${Name}_creates", nodeSetIndex);
     }
 }

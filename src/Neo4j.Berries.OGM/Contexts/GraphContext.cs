@@ -64,7 +64,7 @@ public abstract class GraphContext
             {
                 CypherBuilder.AppendLine("WITH 0 AS nothing");
             }
-            validNodeSets.ElementAt(i).BuildCypher();
+            validNodeSets.ElementAt(i).BuildCypher(parameters);
         }
         var _parameters = parameters.ToList();
         await Database.RunAsync(CypherBuilder.ToString(), _parameters, cancellationToken);
@@ -85,7 +85,7 @@ public abstract class GraphContext
             {
                 CypherBuilder.AppendLine("WITH 0 as nothing");
             }
-            validNodeSets.ElementAt(i).BuildCypher();
+            validNodeSets.ElementAt(i).BuildCypher(parameters);
         }
         Database.Run(CypherBuilder.ToString(), parameters);
 

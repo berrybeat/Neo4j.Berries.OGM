@@ -33,4 +33,11 @@ public class MoviesController(ApplicationGraphContext graphContext) : Controller
         stopwatch.Stop();
         return stopwatch.ElapsedMilliseconds;
     }
+    [HttpPut("update")]
+    public IActionResult Update(Movie movie)
+    {
+        graphContext.Movies.Merge(movie);
+        graphContext.SaveChanges();
+        return Ok();
+    }
 }
