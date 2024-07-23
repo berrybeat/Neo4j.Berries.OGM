@@ -417,8 +417,9 @@ public class NodeQuery
     private StringBuilder PrepareArchive()
     {
         var key = Matches.First().StartNodeAlias;
+        var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
         return CypherBuilder.AppendLines(
-            $"SET {key}.ArchivedAt = timestamp()",
+            $"SET {key}.{timestampConfig.ArchivedTimestampKey} = timestamp()",
             $"WITH DISTINCT {key}",
             $"RETURN {key}"
         );

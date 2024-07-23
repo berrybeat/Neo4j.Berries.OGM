@@ -118,11 +118,11 @@ public class UpdateCamelCasePropertyTests : TestBase
         var records = OpenSession(session =>
         {
             return session.Run(
-                "MATCH(m:Movie WHERE m.id=$p0) return m.ArchivedAt as archivedAt",
+                "MATCH(m:Movie WHERE m.id=$p0) return m.archivedOn as archivedOn",
                 new Dictionary<string, object> { { "p0", TestMovieNode.Id.ToString() } })
                 .Select(x =>
                 {
-                    var offset = DateTimeOffset.FromUnixTimeMilliseconds(x.Get<long>("archivedAt"));
+                    var offset = DateTimeOffset.FromUnixTimeMilliseconds(x.Get<long>("archivedOn"));
                     return offset.UtcDateTime;
                 })
                 .ToList();
