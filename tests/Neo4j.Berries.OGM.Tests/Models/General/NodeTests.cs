@@ -603,7 +603,7 @@ public class NodeTests : TestBase
             SET m_0_1_0.FirstName=muv_0.Director.FirstName, m_0_1_0.LastName=muv_0.Director.LastName
             MERGE (m_0)<-[r_0:DIRECTED]-(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             """);
         else
@@ -620,7 +620,7 @@ public class NodeTests : TestBase
             SET m_0_1_0.FirstName=muv_0.Director.FirstName, m_0_1_0.LastName=muv_0.Director.LastName
             MERGE (m_0)<-[r_0:DIRECTED]-(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             """);
     }
@@ -712,7 +712,7 @@ public class NodeTests : TestBase
             SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
             MERGE (m_0)-[r_0:ACTED_IN]->(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             """);
         else
@@ -729,7 +729,7 @@ public class NodeTests : TestBase
             SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
             MERGE (m_0)-[r_0:ACTED_IN]->(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             """);
     }
@@ -833,7 +833,7 @@ public class NodeTests : TestBase
             ON MATCH SET m_0_1_0.modifiedOn=timestamp()
             MERGE (m_0)-[r_0:USES]->(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             FOREACH (muv_0_1_0 IN muv_0.Resources.Car |
             MERGE (m_0_1_0:Car {LicensePlate: muv_0_1_0.LicensePlate})
@@ -842,7 +842,7 @@ public class NodeTests : TestBase
             SET m_0_1_0.Brand=muv_0_1_0.Brand
             MERGE (m_0)-[r_0:USES]->(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             )
             """);
@@ -860,7 +860,7 @@ public class NodeTests : TestBase
             ON MATCH SET m_0_1_0.modifiedOn=timestamp()
             MERGE (m_0)-[r_0:USES]->(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             FOREACH (muv_0_1_0 IN muv_0.Resources.Car |
             MERGE (m_0_1_0:Car {LicensePlate: muv_0_1_0.LicensePlate})
@@ -869,7 +869,7 @@ public class NodeTests : TestBase
             SET m_0_1_0.Brand=muv_0_1_0.Brand
             MERGE (m_0)-[r_0:USES]->(m_0_1_0)
             ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
-            ON MATCH SET r_0.modifiedOn=timestamp()
+            ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             )
             """);
