@@ -958,24 +958,20 @@ public class NodeTests : TestBase
     [Fact]
     public void Should_Archive_All_Root_Relations_If_Marked_As_KeepHistory()
     {
-        Neo4jSingletonContext.Configs["Person"].Relations["Friends"].KeepHistory = true;
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
         Neo4jSingletonContext.Configs["Person"].Relations["Address"].KeepHistory = true;
         var node = new Node("Person");
         node.Consider([
             new () {
                 { "Id", Guid.NewGuid().ToString() },
                 { "FirstName", "John" },
-                { "Friends", new List<Dictionary<string, object>> {
-                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" } },
-                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jane" } },
-                } },
                 { "Address", new Dictionary<string, object> {
                     { "Street", "Street 1" },
                 } }
             }
         ]);
         var cypherBuilder = new StringBuilder();
-        node.ArchiveRelations(cypherBuilder, out var variables);
+        node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
         MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
@@ -985,6 +981,202 @@ public class NodeTests : TestBase
         var identifiers = variables["person_id_0"] as List<object>;
         identifiers.Should().HaveCount(1);
         identifiers.Should().Contain(node.Identifiers["Id"]);
-
     }
+
+    [Fact]
+    public void Should_Archive_All_Multiple_Relations()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.Configs["Person"].Relations["Friends"].KeepHistory = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Friends", new List<Dictionary<string, object>> {
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" } },
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jane" } },
+                } }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.ArchiveRelations(cypherBuilder, 0, out var variables);
+        var cypher = cypherBuilder.ToString().Trim();
+        cypher.Should().Be("""
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        """);
+        variables.Should().ContainKey("person_id_0");
+        variables.Should().HaveCount(1);
+        var identifiers = variables["person_id_0"] as List<object>;
+        identifiers.Should().HaveCount(1);
+        identifiers.Should().Contain(node.Identifiers["Id"]);
+    }
+
+    [Fact]
+    public void Should_Archive_Group_Relations()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.Configs["Person"].Relations["Resources"].KeepHistory = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new List<Dictionary<string, object>> {
+                            new () { { "LicensePlate", "AB123" }, { "Brand", "BMW" } },
+                            new () { { "LicensePlate", "ES123" } },
+                        }
+                    }
+                }}
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.ArchiveRelations(cypherBuilder, 0, out var variables);
+        var cypher = cypherBuilder.ToString().Trim();
+        cypher.Should().Be("""
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        """);
+        variables.Should().ContainKey("person_id_0");
+        variables.Should().HaveCount(1);
+        var identifiers = variables["person_id_0"] as List<object>;
+        identifiers.Should().HaveCount(1);
+        identifiers.Should().Contain(node.Identifiers["Id"]);
+    }
+
+    [Fact]
+    public void Should_Archive_All_KeepHistory_Relations_In_Root()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.Configs["Person"].Relations["Friends"].KeepHistory = true;
+        Neo4jSingletonContext.Configs["Person"].Relations["Address"].KeepHistory = true;
+        Neo4jSingletonContext.Configs["Person"].Relations["Resources"].KeepHistory = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Address", new Dictionary<string, object> {
+                    { "Street", "Street 1" },
+                } },
+                { "Friends", new List<Dictionary<string, object>> {
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" } },
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jane" } },
+                } },
+                { "Resources", new Dictionary<string, object> {
+                    {
+                        "Room",
+                        new List<Dictionary<string, object>> {
+                            new () { { "Number", "100" } },
+                            new () { { "Number", "101" } },
+                        }
+                    },
+                    {
+                        "Car",
+                        new List<Dictionary<string, object>> {
+                            new () { { "LicensePlate", "AB123" }, { "Brand", "BMW" } },
+                            new () { { "LicensePlate", "ES123" } },
+                        }
+                    }
+                }}
+            },
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "Jake" },
+                { "Address", new Dictionary<string, object> {
+                    { "Street", "Street 1" },
+                } },
+                { "Friends", new List<Dictionary<string, object>> {
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jun" } },
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Janet" } },
+                } }
+            },
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.ArchiveRelations(cypherBuilder, 0, out var variables);
+        var cypher = cypherBuilder.ToString().Trim();
+        cypher.Should().Be("""
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        """);
+        variables.Should().ContainKey("person_id_0");
+        variables.Should().HaveCount(1);
+        var identifiers = variables["person_id_0"] as List<object>;
+        identifiers.Should().HaveCount(2);
+        identifiers.Should().Contain(node.Identifiers["Id"]);
+    }
+
+    [Fact]
+    public void Should_Not_Set_Variables_If_No_Node_Has_KeepHistory_Flag() {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Friends", new List<Dictionary<string, object>> {
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" }, { "Address", new Dictionary<string, object> {
+                        { "Street", "Street 1" }
+                    } } },
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jane" } },
+                } }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.ArchiveRelations(cypherBuilder, 0, out var variables);
+        variables.Should().BeEmpty();
+        cypherBuilder.ToString().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Should_Archive_Nested_Single_Relations()
+    {
+        Neo4jSingletonContext.TimestampConfiguration.Enabled = true;
+        Neo4jSingletonContext.Configs["Person"].Relations["Address"].KeepHistory = true;
+        var node = new Node("Person");
+        node.Consider([
+            new () {
+                { "Id", Guid.NewGuid().ToString() },
+                { "FirstName", "John" },
+                { "Friends", new List<Dictionary<string, object>> {
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jake" }, { "Address", new Dictionary<string, object> {
+                        { "Street", "Street 1" }
+                    } } },
+                    new () { { "Id", Guid.NewGuid().ToString() }, { "FirstName", "Jane" } },
+                } }
+            }
+        ]);
+        var cypherBuilder = new StringBuilder();
+        node.ArchiveRelations(cypherBuilder, 0, out var variables);
+        var cypher = cypherBuilder.ToString().Trim();
+        cypher.Should().Be("""
+        MATCH(a_0_1_0:Person WHERE a_0_1_0.Id IN $person_id_1)-[r_0_1_0:LIVES_IN WHERE r_0_1_0.archivedOn IS null]->(:Address) SET r_0_1_0.archivedOn=timestamp()
+        WITH 0 AS nothing
+        """);
+        variables.Should().ContainKey("person_id_1");
+        variables.Should().HaveCount(1);
+        var identifiers = variables["person_id_1"] as List<object>;
+        identifiers.Should().HaveCount(2);
+        identifiers.Should().Contain(node.MultipleRelations["Friends"].Identifiers["Id"]);
+    }
+
 }

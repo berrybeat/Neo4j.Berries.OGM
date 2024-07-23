@@ -121,15 +121,57 @@ internal class Node(string label, int depth = 0)
         return node;
     }
 
-    public void ArchiveRelations(StringBuilder cypherBuilder, out Dictionary<string, object> variables)
+    public void ArchiveRelations(StringBuilder cypherBuilder, int nodeSetIndex, out Dictionary<string, object> variables)
     {
         variables = [];
-        foreach(var identifier in Identifiers)
+        if (!Neo4jSingletonContext.TimestampConfiguration.Enabled) return;
+
+        var singleRelationsWithKeepHistory = SingleRelations.Where(x => NodeConfig.Relations[x.Key].KeepHistory);
+        var multipleRelationsWithKeepHistory = MultipleRelations.Where(x => NodeConfig.Relations[x.Key].KeepHistory);
+        var groupRelationWithKeepHistory = GroupRelations.Where(x => NodeConfig.Relations[x.Key].KeepHistory);
+        var keepHistoryRelations = singleRelationsWithKeepHistory
+            .Select(x => x.Key)
+            .Concat(multipleRelationsWithKeepHistory.Select(x => x.Key))
+            .Concat(groupRelationWithKeepHistory.Select(x => x.Key));
+        if (keepHistoryRelations.Any())
         {
-            var variableKey = $"{label.ToLower()}_{identifier.Key.ToLower()}_{depth}";
-            variables[variableKey] = identifier.Value;
+            foreach (var identifier in Identifiers)
+            {
+                var variableKey = $"{label.ToLower()}_{identifier.Key.ToLower()}_{depth}";
+                variables[variableKey] = identifier.Value;
+            }
+            _ = variables.Count == 0 ? throw new InvalidOperationException("Identifiers are mandatory while archiving nodes") : 0;
         }
-        ArchiveSingleRelations(cypherBuilder);
+        foreach (var relationKey in keepHistoryRelations)
+        {
+            var relationConfig = NodeConfig.Relations[relationKey];
+            var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+            var relationAlias = ComputeAlias("r", nodeSetIndex, 0);
+            var nodeAlias = ComputeAlias("a", nodeSetIndex, 0);
+            foreach (var endNode in relationConfig.EndNodeLabels)
+            {
+                cypherBuilder.Append($"MATCH({nodeAlias}:{Label} WHERE ");
+                cypherBuilder.Append(
+                    string.Join(
+                        " AND ",
+                        Identifiers.Select(x => $"{nodeAlias}.{x.Key} IN ${label.ToLower()}_{x.Key.ToLower()}_{depth}")
+                    )
+                );
+                cypherBuilder.AppendLine(
+                    $"){relationConfig.Format($"{relationAlias}.{timestampConfig.ArchivedTimestampKey} IS null", relationAlias)}(:{endNode}) SET {relationAlias}.{timestampConfig.ArchivedTimestampKey}=timestamp()"
+                );
+                cypherBuilder.AppendLine("WITH 0 AS nothing");
+            }
+        }
+        var allNodes = SingleRelations.Values.Concat(MultipleRelations.Values).Concat(GroupRelations.Values.SelectMany(x => x.Values));
+        foreach (var node in allNodes)
+        {
+            node.ArchiveRelations(cypherBuilder, nodeSetIndex, out Dictionary<string, object> nodeVariables);
+            foreach (var variable in nodeVariables)
+            {
+                variables[variable.Key] = variable.Value;
+            }
+        }
     }
 
     public void Create(StringBuilder cypherBuilder, string collection, int nodeSetIndex)
@@ -354,29 +396,6 @@ internal class Node(string label, int depth = 0)
         else if (!timestampConfig.Enabled)
         {
             cypherBuilder.AppendLine();
-        }
-    }
-
-    private void ArchiveSingleRelations(StringBuilder cypherBuilder)
-    {
-        var singleRelationsWithKeepHistory = SingleRelations.Where(x => NodeConfig.Relations[x.Key].KeepHistory);
-        ///Should only work if timestamps are enabled
-        ///Should throw exception if there is no identifier
-        foreach (var relation in singleRelationsWithKeepHistory)
-        {
-            var relationConfig = NodeConfig.Relations[relation.Key];
-            var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
-            var relationAlias = ComputeAlias("r", depth, 0);
-            var nodeAlias = ComputeAlias("a", depth, 0);
-            cypherBuilder.Append($"MATCH({nodeAlias}:{Label} WHERE ");
-            cypherBuilder.Append(
-                string.Join(
-                    " AND ", 
-                    Identifiers.Select(x => $"{nodeAlias}.{x.Key} IN ${label.ToLower()}_{x.Key.ToLower()}_{depth}")
-                )
-            );
-            cypherBuilder.AppendLine($"){relationConfig.Format(relationAlias, $" WHERE {relationAlias}.{timestampConfig.ArchivedTimestampKey} IS null")}(:{relationConfig.EndNodeLabels[0]}) SET {relationAlias}.{timestampConfig.ArchivedTimestampKey}=timestamp()");
-            cypherBuilder.AppendLine("WITH 0 AS nothing");
         }
     }
 
