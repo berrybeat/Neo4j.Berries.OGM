@@ -25,7 +25,7 @@ internal static class Converters
     }
     public static TResult Convert<TResult>(this IRecord record, string key)
     {
-        var node = record[key].As<INode>();
+        var node = record[key].As<IEntity>();
         var nodeProperties = JsonSerializer.Serialize(node.Properties, SerializerOptions);
 
         return JsonSerializer.Deserialize<TResult>(nodeProperties, SerializerOptions);

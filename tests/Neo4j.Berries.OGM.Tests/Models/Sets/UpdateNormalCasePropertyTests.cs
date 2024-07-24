@@ -3,6 +3,7 @@ using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Tests.Mocks.Enums;
 using Neo4j.Berries.OGM.Enums;
+using Neo4j.Berries.OGM.Utils;
 
 namespace Neo4j.Berries.OGM.Tests.Models.Sets;
 public class UpdateNormalCasePropertyTests : TestBase
@@ -269,10 +270,60 @@ public class UpdateNormalCasePropertyTests : TestBase
                 x => x.Where("Id", TestMovieNode.Id)
             )
             .Connect("Actors", x => x.Where("Id", TestPersonNode.Id));
-        
+
         var testAnonymousMovie = anonymous.Match(x => x.Where("Id", TestMovieNode.Id))
             .WithRelation("Actors", x => x.Where("Id", TestPersonNode.Id))
             .FirstOrDefault<Dictionary<string, object>>();
         testAnonymousMovie.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Should_Archive_Node_Anonymously()
+    {
+        var anonymous = TestGraphContext.Anonymous("Movie");
+        anonymous
+            .Match(
+                x => x.Where("Id", TestMovieNode.Id)
+            )
+            .Archive<Movie>();
+        var testAnonymousMovie = anonymous.Match(x => x.Where("Id", TestMovieNode.Id)).FirstOrDefault<Dictionary<string, object>>();
+        testAnonymousMovie.Should().NotBeNull();
+        testAnonymousMovie["archivedOn"].Should().NotBeNull();
+    }
+    [Fact]
+    public void Should_Archive_Node_Anonymously_And_Return_Archived_Records()
+    {
+        var anonymous = TestGraphContext.Anonymous("Movie");
+        var records = anonymous
+            .Match(
+                x => x.Where("Id", TestMovieNode.Id)
+            )
+            .Archive(x => x.StartNode());
+        var key = records.SelectMany(x => x.Keys).First();
+        records.Select(x => x.Convert<Dictionary<string, object>>(key)).First()["archivedOn"].Should().NotBeNull();
+    }
+    [Fact]
+    public void Should_Archive_Node_Anonymously_With_Relation()
+    {
+        var anonymous = TestGraphContext.Anonymous("Movie");
+        var records = anonymous
+            .Match(
+                x => x.Where("Id", TestMovieNode.Id)
+            )
+            .WithRelation("Actors", x => x.Where("Id", TestPersonNode.Id))
+            .Archive(x => x.All());
+        var keys = records.SelectMany(x => x.Keys);
+        keys.Should().HaveCount(2);
+        var result = records.Select(
+            x => {
+                var result = new Dictionary<string, Dictionary<string, object>>();
+                foreach(var key in keys) {
+                    result[key] = x.Convert<Dictionary<string, object>>(key);
+                }
+                return result;
+            }
+        );
+        result.First()["l0"]["archivedOn"].Should().NotBeNull();
+        result.First()["r1"]["archivedOn"].Should().NotBeNull();
     }
 }

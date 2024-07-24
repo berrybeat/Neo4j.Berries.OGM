@@ -1,9 +1,7 @@
-using System.Diagnostics.Contracts;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Contexts;
-using Neo4j.Berries.OGM.Models.Sets;
+using Neo4j.Berries.OGM.Models.General;
 using Neo4j.Berries.OGM.Tests.Common;
 
 namespace Neo4j.Berries.OGM.Tests.Models.General;

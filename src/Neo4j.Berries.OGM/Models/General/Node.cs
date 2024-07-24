@@ -3,7 +3,7 @@ using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Models.Config;
 using Neo4j.Berries.OGM.Utils;
 
-namespace Neo4j.Berries.OGM.Models.Sets;
+namespace Neo4j.Berries.OGM.Models.General;
 
 internal class Node(string label, int depth = 0)
 {

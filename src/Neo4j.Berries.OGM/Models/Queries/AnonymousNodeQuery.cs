@@ -2,6 +2,7 @@ using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
+using Neo4j.Berries.OGM.Models.General;
 using Neo4j.Berries.OGM.Models.Match;
 using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Utils;
@@ -300,7 +301,8 @@ public class NodeQuery
         builder.AppendLine($"RETURN {Matches.First().StartNodeAlias}");
         return builder;
     }
-    protected void AppendTimestamps(StringBuilder cypherBuilder) {
+    protected void AppendTimestamps(StringBuilder cypherBuilder)
+    {
         var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
         var nodeAlias = Matches.First().StartNodeAlias;
         if (timestampConfig.Enabled)
@@ -391,7 +393,6 @@ public class NodeQuery
     #endregion
 
     #region Archive
-
     ///<summary>
     /// Archives the nodes matched with the query. The remove function will only set the ArchivedAt property to the node and will not HardDelete the node.<br>
     ///</summary>
@@ -414,14 +415,48 @@ public class NodeQuery
         return await ExecuteWithMapAsync(record => record.Convert<T>(key), archiveCypher, cancellationToken);
     }
 
-    private StringBuilder PrepareArchive()
+    public IEnumerable<IRecord> Archive(Action<ArchiveOptionsBuilder> builder)
     {
-        var key = Matches.First().StartNodeAlias;
+        var optionsBuilder = new ArchiveOptionsBuilder();
+        builder(optionsBuilder);
+        var options = optionsBuilder.Options;
+        var archiveCypher = PrepareArchive(options).ToString();
+        return ExecuteWithMap(record => record, archiveCypher);
+    }
+
+    public async Task<IEnumerable<IRecord>> ArchiveAsync(Action<ArchiveOptionsBuilder> builder, CancellationToken cancellationToken = default)
+    {
+        var optionsBuilder = new ArchiveOptionsBuilder();
+        builder(optionsBuilder);
+        var options = optionsBuilder.Options;
+        var archiveCypher = PrepareArchive(options).ToString();
+        return await ExecuteWithMapAsync(record => record, archiveCypher, cancellationToken);
+    }
+
+    private StringBuilder PrepareArchive(ArchiveOptions options = null)
+    {
+        options ??= new ArchiveOptions { StartNode = true };
         var timestampConfig = Neo4jSingletonContext.TimestampConfiguration;
+        var aliases = new List<string>();
+        if (options.StartNode)
+        {
+            var key = Matches.First().StartNodeAlias;
+            CypherBuilder.AppendLine($"SET {key}.{timestampConfig.ArchivedTimestampKey} = timestamp()");
+            aliases.Add(key);
+        }
+        if (options.Edges)
+        {
+            foreach (var match in Matches.Skip(1))
+            {
+                var key = match.RelationAlias;
+                CypherBuilder.AppendLine($"SET {key}.{timestampConfig.ArchivedTimestampKey} = timestamp()");
+                aliases.Add(key);
+            }
+        }
+        var aliasesString = string.Join(", ", aliases);
         return CypherBuilder.AppendLines(
-            $"SET {key}.{timestampConfig.ArchivedTimestampKey} = timestamp()",
-            $"WITH DISTINCT {key}",
-            $"RETURN {key}"
+            $"WITH DISTINCT {aliasesString}",
+            $"RETURN {aliasesString}"
         );
     }
 
