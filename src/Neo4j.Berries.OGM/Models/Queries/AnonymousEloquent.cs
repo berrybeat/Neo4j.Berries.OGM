@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Data;
 using Neo4j.Berries.OGM.Enums;
 using Neo4j.Berries.OGM.Utils;
@@ -130,9 +131,19 @@ public class Eloquent
         else
         {
             value = value.ToNeo4jValue();
-            if (value is IEnumerable<Guid> enumerable)
+            //This is the case the object is setting by an external request and in C# we have no recollection of the type
+            if (value is IEnumerable<object> enumerable && enumerable.Where(x => Guid.TryParse(x.ToString(), out var _)).Any())
             {
-                value = enumerable.Select(x => x.ToString()).ToArray();
+                value = enumerable
+                    .Where(x => Guid.TryParse(x.ToString(), out var _))
+                    .Select(x => x.ToString())
+                    .ToArray();
+            }
+            else if (value is IEnumerable<Guid> _enumerable)
+            {
+                value = _enumerable
+                    .Select(x => x.ToString())
+                    .ToArray();
             }
             var queryParameterName = CurrentQueryParameterName;
             QueryParameters.Add(queryParameterName.Replace("$", ""), value);
