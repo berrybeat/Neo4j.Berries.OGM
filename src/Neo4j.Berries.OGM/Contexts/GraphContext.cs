@@ -129,14 +129,13 @@ public abstract class GraphContext
             }
 
             var _parameters = parameters.ToList();
-            var result = CypherBuilder.ToString() + "; Params: " + JsonSerializer.Serialize(_parameters).ToString();
             var result2 = BuildFinalQuery(CypherBuilder.ToString(), _parameters.ToDictionary(pair => pair.Key, pair => pair.Value));
             return result2;
         }
 
         catch (Exception ex)
         {
-            return $"Error: {ex.Message}";
+            return $"Error: {ex.Message}; {ex.StackTrace}";
         }
     }
 
