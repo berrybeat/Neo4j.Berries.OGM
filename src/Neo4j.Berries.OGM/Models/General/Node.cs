@@ -160,7 +160,7 @@ internal class Node(string label, int depth = 0)
                 cypherBuilder.AppendLine(
                     $"){relationConfig.Format($"{relationAlias}.{timestampConfig.ArchivedTimestampKey} IS null", relationAlias)}(:{endNode}) SET {relationAlias}.{timestampConfig.ArchivedTimestampKey}=timestamp()"
                 );
-                cypherBuilder.AppendLine("}}");
+                cypherBuilder.AppendLine("}");
             }
         }
         var allNodes = SingleRelations.Values.Concat(MultipleRelations.Values).Concat(GroupRelations.Values.SelectMany(x => x.Values));
