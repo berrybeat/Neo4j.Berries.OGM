@@ -112,7 +112,7 @@ public abstract class GraphContext
         }
     }
     
-    public string GetGeneratedCypher()
+    public string ShowGeneratedCypher()
     {
         try
         {
@@ -172,6 +172,8 @@ public abstract class GraphContext
 
     private static string FormatParameter(object value)
     {
+        if(value == null) return string.Empty;
+
         if (value is string strValue)
         {
             return $"'{strValue}'";
