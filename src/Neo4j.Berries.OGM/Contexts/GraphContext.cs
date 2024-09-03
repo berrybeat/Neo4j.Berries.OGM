@@ -62,7 +62,7 @@ public abstract class GraphContext
         {
             if (i > 0 && i < validNodeSets.Count())
             {
-                CypherBuilder.AppendLine("WITH 0 AS nothing");
+                //CypherBuilder.AppendLine("WITH 0 AS nothing");
             }
             validNodeSets.ElementAt(i).BuildCypher(parameters);
         }
