@@ -111,4 +111,85 @@ public abstract class GraphContext
             nodeSet.Reset();
         }
     }
+    
+    public string GetGeneratedCypher()
+    {
+        try
+        {
+            Dictionary<string, object> parameters = [];
+            GetCreateParameters(parameters);
+            var validNodeSets = NodeSets.Where(x => x.MergeNodes.Any() || x.NewNodes.Any());
+            for (var i = 0; i < validNodeSets.Count(); i++)
+            {
+                if (i > 0 && i < validNodeSets.Count())
+                {
+                    CypherBuilder.AppendLine("WITH 0 AS nothing");
+                }
+                validNodeSets.ElementAt(i).BuildCypher(parameters);
+            }
+
+            var _parameters = parameters.ToList();
+            var result = CypherBuilder.ToString() + "; Params: " + JsonSerializer.Serialize(_parameters).ToString();
+            var result2 = BuildFinalQuery(CypherBuilder.ToString(), _parameters.ToDictionary(pair => pair.Key, pair => pair.Value));
+            return result2;
+        }
+
+        catch (Exception ex)
+        {
+            return $"Error: {ex.Message}";
+        }
+    }
+
+    private static string BuildFinalQuery(string cypher, IDictionary<string, object> parameters)
+    {
+        var finalQuery = new StringBuilder(cypher);
+
+        foreach (var param in parameters)
+        {
+            string paramValue;
+
+            if (param.Value is string)
+            {
+                // Wenn der Parameter ein String ist, wird er in Anführungszeichen gesetzt.
+                paramValue = $"'{param.Value}'";
+            }
+            else if (param.Value is IEnumerable<object> collection)
+            {
+                // Wenn der Parameter eine Liste ist, konvertieren wir die Elemente in Strings und setzen sie in Klammern.
+                paramValue = "[" + string.Join(", ", collection.Select(FormatParameter)) + "]";
+            }
+            else
+            {
+                // Bei anderen Typen verwenden wir die ToString-Methode.
+                paramValue = param.Value.ToString();
+            }
+
+            // Ersetzen des Platzhalters durch den tatsächlichen Wert.
+            finalQuery.Replace($"${param.Key}", paramValue);
+        }
+
+        return finalQuery.ToString();
+    }
+
+    private static string FormatParameter(object value)
+    {
+        if (value is string strValue)
+        {
+            return $"'{strValue}'";
+        }
+        else if (value is IDictionary<string, object> dictValue)
+        {
+            // Für verschachtelte Objekte wie "lifeCycle" oder "company"
+            return "{" + string.Join(", ", dictValue.Select(kv => $"{kv.Key}: {FormatParameter(kv.Value)}")) + "}";
+        }
+        else if (value is IEnumerable<object> listValue)
+        {
+            // Für Listen von Objekten
+            return "[" + string.Join(", ", listValue.Select(FormatParameter)) + "]";
+        }
+        else
+        {
+            return value.ToString();
+        }
+    }
 }
