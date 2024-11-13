@@ -5,6 +5,7 @@ using Neo4j.Berries.OGM.Tests.Mocks;
 using Neo4j.Berries.OGM.Tests.Mocks.Models;
 using FluentAssertions;
 using Neo4j.Berries.OGM.Models.Queries;
+using Neo4j.Berries.OGM.Tests.Common;
 
 namespace Neo4j.Berries.OGM.Tests.Models;
 
@@ -162,5 +163,45 @@ public class EloquentTests
 
         query.QueryParameters.Should().BeEmpty();
         query.ToCypher("p").Should().Be("p.Id IS NULL");
+    }
+
+    [Fact]
+    public void Should_Generate_CONTAINS_Cypher_Query()
+    {
+        string name = "Mark";
+        var query = new Eloquent<Person>(0);
+        query.WhereContains(x => x.FirstName, name);
+        query.ToCypher("p").NormalizeWhitespace().Should().Be("p.FirstName CONTAINS $qp_0_0".NormalizeWhitespace());
+        query.QueryParameters["qp_0_0"].Should().BeEquivalentTo(name);
+    }
+
+    [Fact]
+    public void Should_Generate_STARTS_WITH_Cypher_Query()
+    {
+        string name = "Mark";
+        var query = new Eloquent<Person>(0);
+        query.WhereStartsWith(x => x.FirstName, name);
+        query.ToCypher("p").NormalizeWhitespace().Should().Be("p.FirstName STARTS WITH $qp_0_0".NormalizeWhitespace());
+        query.QueryParameters["qp_0_0"].Should().BeEquivalentTo(name);
+    }
+
+    [Fact]
+    public void Should_Generate_ENDS_WITH_Cypher_Query()
+    {
+        string name = "Mark";
+        var query = new Eloquent<Person>(0);
+        query.WhereEndsWith(x => x.FirstName, name);
+        query.ToCypher("p").NormalizeWhitespace().Should().Be("p.FirstName ENDS WITH $qp_0_0".NormalizeWhitespace());
+        query.QueryParameters["qp_0_0"].Should().BeEquivalentTo(name);
+    }
+
+    [Fact]
+    public void Should_Generate_IS_NORMALIZED_Cypher_Query()
+    {
+        string name = "Mark";
+        var query = new Eloquent<Person>(0);
+        query.WhereIsNormalized(x => x.FirstName);
+        query.ToCypher("p").NormalizeWhitespace().Should().Be("p.FirstName IS NORMALIZED".NormalizeWhitespace());
+        query.QueryParameters.Should().BeEmpty();
     }
 }

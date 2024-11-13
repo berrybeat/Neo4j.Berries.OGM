@@ -1,6 +1,7 @@
 using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
+using Neo4j.Berries.OGM.Models.Match;
 
 namespace Neo4j.Berries.OGM.Utils;
 
@@ -34,18 +35,44 @@ internal static class QueryUtils
     }
     internal static StringBuilder BuildFirstOrDefaultQuery(this StringBuilder builder, List<IMatch> matches)
     {
-        var key = matches.First().StartNodeAlias;
+        var withKey = $"{matches.First().StartNodeAlias}";
+        var returnKey = withKey;
+        foreach (var relation in matches.Skip(1).OfType<MatchRelationModel>())
+        {
+            withKey += $", {relation.EndNodeAlias}";
+            if (relation.IsCollection)
+            {
+                returnKey += $", collect({relation.EndNodeAlias}) as {CollectionAlias(relation.EndNodeAlias)}";
+            }
+            else
+            {
+                returnKey = withKey;
+            }
+        }
         return builder.AppendLines(
-            $"WITH DISTINCT {key}",
-            $"RETURN {key}"
+            $"WITH DISTINCT {withKey}",
+            $"RETURN {returnKey}"
         );
     }
     internal static StringBuilder BuildListQuery(this StringBuilder builder, List<IMatch> matches)
     {
-        var key = matches.First().StartNodeAlias;
+        var withKey = $"{matches.First().StartNodeAlias}";
+        var returnKey = withKey;
+        foreach (var relation in matches.Skip(1).OfType<MatchRelationModel>())
+        {
+            withKey += $", {relation.EndNodeAlias}";
+            if (relation.IsCollection)
+            {
+                returnKey += $", collect({relation.EndNodeAlias}) as {CollectionAlias(relation.EndNodeAlias)}";
+            }
+            else
+            {
+                returnKey = withKey;
+            }
+        }
         return builder.AppendLines(
-            $"WITH DISTINCT {key}",
-            $"RETURN {key}"
+            $"WITH DISTINCT {withKey}",
+            $"RETURN {returnKey}"
         );
     }
 
@@ -62,4 +89,6 @@ internal static class QueryUtils
 
         }
     }
+
+    internal static string CollectionAlias(string alias) => $"coll_{alias}";
 }

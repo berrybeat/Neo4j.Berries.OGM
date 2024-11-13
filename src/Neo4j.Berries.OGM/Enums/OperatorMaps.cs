@@ -11,4 +11,12 @@ public class OperatorMaps {
         { ComparisonOperator.LessThan, "<" },
         { ComparisonOperator.LessThanOrEquals, "<=" }
     };
+
+    public static Dictionary<StringComparisonOperator, string> StringComparisonOperatorMap = new()
+    {
+        { StringComparisonOperator.Contains, "CONTAINS" },
+        { StringComparisonOperator.StartsWith, "STARTS WITH" },
+        { StringComparisonOperator.EndsWith, "ENDS WITH" },
+        { StringComparisonOperator.IsNormalized, "IS NORMALIZED" },
+    };
 }

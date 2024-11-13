@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Enums;
@@ -42,7 +43,7 @@ where TNode : class
     where TProperty : class
     {
         var propertyName = ((MemberExpression)expression.Body).Member.Name;
-        var relationConfig = new RelationConfiguration<TNode, TProperty>(label, direction);
+        var relationConfig = new RelationConfiguration<TNode, TProperty>(label, direction) { Property = propertyName, IsCollection = true };
         Config.Relations[propertyName] = relationConfig;
         Exclude(expression);
         return relationConfig;
@@ -54,7 +55,7 @@ where TNode : class
     where TProperty : class
     {
         var propertyName = ((MemberExpression)expression.Body).Member.Name;
-        var relationConfig = new RelationConfiguration<TNode, TProperty>(label, direction);
+        var relationConfig = new RelationConfiguration<TNode, TProperty>(label, direction) { Property = propertyName };
         Config.Relations[propertyName] = relationConfig;
         Exclude(expression);
         return relationConfig;
@@ -67,6 +68,7 @@ where TNode : class
     where TProperty : class
     {
         var propertyName = ((MemberExpression)expression.Body).Member.Name;
+        configuration.Property = propertyName;
         Config.Relations[propertyName] = configuration;
         Exclude(expression);
         return configuration;
@@ -78,6 +80,8 @@ where TNode : class
     where TProperty : class
     {
         var propertyName = ((MemberExpression)expression.Body).Member.Name;
+        configuration.Property = propertyName;
+        configuration.IsCollection = true;
         Config.Relations[propertyName] = configuration;
         Exclude(expression);
         return configuration;
@@ -88,9 +92,29 @@ where TNode : class
     /// </summary>
     public void Include<TProperty>(params Expression<Func<TNode, TProperty>>[] expressions)
     {
+        var removeFromExclude = new List<string>();
         expressions
                 .Select(x => Neo4jSingletonContext.PropertyCaseConverter(((MemberExpression)x.Body).Member.Name)).ToList()
-                .ForEach(Config.IncludedProperties.Add);
+                .ForEach(x =>
+                {
+                    if (Config.ExcludedProperties.Any(e => e == x))
+                    {
+                        removeFromExclude.Add(x);
+                    }
+                });
+
+        if (removeFromExclude.Any())
+        {
+            ConcurrentBag<string> newExclude = new();
+            foreach(var x in Config.ExcludedProperties)
+            {
+                if (!removeFromExclude.Contains(x))
+                {
+                    newExclude.Add(x);
+                }
+            }
+            Config.ExcludedProperties = newExclude;
+        }
     }
 
     /// <summary>

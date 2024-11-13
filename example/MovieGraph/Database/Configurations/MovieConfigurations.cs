@@ -13,7 +13,10 @@ public class MovieConfigurations : INodeConfiguration<Movie>
         {
             KeepHistory = true
         });
+        
         builder.HasRelationWithMultiple(x => x.Actors, "ACTED_IN", RelationDirection.In);
         builder.HasIdentifier(x => x.Id);
+        builder.Include(x => x.Director);
+        builder.Include(x => x.Actors);
     }
 }

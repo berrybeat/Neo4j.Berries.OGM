@@ -176,10 +176,10 @@ public class NodeTests : TestBase
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
 
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id}) SET m_0.FirstName=muv_0.FirstName, m_0.LastName=muv_0.LastName
-        """);
+        """.NormalizeWhitespace());
     }
 
     [Fact]
@@ -204,14 +204,14 @@ public class NodeTests : TestBase
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
 
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id}) SET m_0.FirstName=muv_0.FirstName
         FOREACH (muv_0_1_0 IN muv_0.MoviesAsActor |
         MERGE (m_0_1_0:Movie) SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
         MERGE (m_0)-[:ACTED_IN]->(m_0_1_0)
         )
-        """);
+        """.NormalizeWhitespace());
     }
     [Fact]
     public void Should_Create_Nested_Relations()
@@ -240,7 +240,7 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id}) SET m_0.FirstName=muv_0.FirstName
         FOREACH (muv_0_1_0 IN muv_0.MoviesAsActor |
@@ -251,7 +251,7 @@ public class NodeTests : TestBase
         )
         MERGE (m_0)-[:ACTED_IN]->(m_0_1_0)
         )
-        """);
+        """.NormalizeWhitespace());
     }
     [Fact]
     public void Should_Create_Cypher_With_Simple_Create()
@@ -265,10 +265,10 @@ public class NodeTests : TestBase
         node.Create(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
 
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS cuv_0
         CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.LastName=cuv_0.LastName
-        """);
+        """.NormalizeWhitespace());
     }
     [Fact]
     public void Should_Create_Cypher_With_Creating_Relations()
@@ -292,14 +292,14 @@ public class NodeTests : TestBase
         node.Create(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
 
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS cuv_0
         CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName
         FOREACH (muv_0_1_0 IN cuv_0.MoviesAsActor |
         MERGE (m_0_1_0:Movie) SET m_0_1_0.Name=muv_0_1_0.Name, m_0_1_0.ReleaseDate=muv_0_1_0.ReleaseDate
         CREATE (c_0)-[:ACTED_IN]->(m_0_1_0)
         )
-        """);
+        """.NormalizeWhitespace());
     }
 
     [Fact]
@@ -320,14 +320,14 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Merge(cypherBuilder, "$movies", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $movies AS muv_0
         MERGE (m_0:Movie) SET m_0.Name=muv_0.Name, m_0.ReleaseDate=muv_0.ReleaseDate
         FOREACH (ignored IN CASE WHEN muv_0.Director IS NOT NULL THEN [1] ELSE [] END |
         MERGE (m_0_1_0:Person) SET m_0_1_0.FirstName=muv_0.Director.FirstName, m_0_1_0.LastName=muv_0.Director.LastName
         MERGE (m_0)<-[:DIRECTED]-(m_0_1_0)
         )
-        """);
+        """.NormalizeWhitespace());
     }
 
     [Fact]
@@ -348,14 +348,14 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Create(cypherBuilder, "$movies", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $movies AS cuv_0
         CREATE (c_0:Movie) SET c_0.Name=cuv_0.Name, c_0.ReleaseDate=cuv_0.ReleaseDate
         FOREACH (ignored IN CASE WHEN cuv_0.Director IS NOT NULL THEN [1] ELSE [] END |
         MERGE (m_0_1_0:Person) SET m_0_1_0.FirstName=cuv_0.Director.FirstName, m_0_1_0.LastName=cuv_0.Director.LastName
         CREATE (c_0)<-[:DIRECTED]-(m_0_1_0)
         )
-        """);
+        """.NormalizeWhitespace());
     }
     [Fact]
     public void Should_Create_Cypher_And_Multiple_Relations_Of_A_SingleRelation()
@@ -380,7 +380,7 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Merge(cypherBuilder, "$movies", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $movies AS muv_0
         MERGE (m_0:Movie) SET m_0.Name=muv_0.Name, m_0.ReleaseDate=muv_0.ReleaseDate
         FOREACH (ignored IN CASE WHEN muv_0.Director IS NOT NULL THEN [1] ELSE [] END |
@@ -391,7 +391,7 @@ public class NodeTests : TestBase
         )
         MERGE (m_0)<-[:DIRECTED]-(m_0_1_0)
         )
-        """);
+        """.NormalizeWhitespace());
     }
 
     [Fact]
@@ -421,7 +421,7 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id}) SET m_0.FirstName=muv_0.FirstName
         FOREACH (muv_0_1_0 IN muv_0.MoviesAsActor |
@@ -432,7 +432,7 @@ public class NodeTests : TestBase
         )
         MERGE (m_0)-[:ACTED_IN]->(m_0_1_0)
         )
-        """);
+        """.NormalizeWhitespace());
     }
 
     [Fact]
@@ -476,7 +476,7 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id}) SET m_0.FirstName=muv_0.FirstName
         FOREACH (ignored IN CASE WHEN muv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
@@ -489,7 +489,7 @@ public class NodeTests : TestBase
         MERGE (m_0)-[:USES]->(m_0_1_0)
         )
         )
-        """);
+        """.NormalizeWhitespace());
     }
 
     [Fact]
@@ -506,13 +506,13 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id})
         ON CREATE SET m_0.createdOn=timestamp()
         ON MATCH SET m_0.modifiedOn=timestamp()
         SET m_0.FirstName=muv_0.FirstName
-        """);
+        """.NormalizeWhitespace());
     }
     [Fact]
     public void Should_Extend_Cypher_With_ModifiedOn_For_Nodes_OnCreation_And_OnMatch()
@@ -529,13 +529,13 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
-        sut.Trim().Should().Be("""
+        sut.NormalizeWhitespace().Should().Be("""
         UNWIND $people AS muv_0
         MERGE (m_0:Person {Id: muv_0.Id})
         ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
         ON MATCH SET m_0.modifiedOn=timestamp()
         SET m_0.FirstName=muv_0.FirstName
-        """);
+        """.NormalizeWhitespace());
     }
     [Theory]
     [InlineData(false)]
@@ -555,15 +555,15 @@ public class NodeTests : TestBase
         node.Create(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
         if (enforceModifiedTimestampKey)
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
-            """);
+            """.NormalizeWhitespace());
         else
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp()
-            """);
+            """.NormalizeWhitespace());
     }
     [Theory]
     [InlineData(true)]
@@ -588,7 +588,7 @@ public class NodeTests : TestBase
         node.Merge(cypherBuilder, "$movies", 0);
         var sut = cypherBuilder.ToString();
         if (!enforceModifiedTimestampKey)
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $movies AS muv_0
             MERGE (m_0:Movie)
             ON CREATE SET m_0.createdOn=timestamp()
@@ -603,9 +603,9 @@ public class NodeTests : TestBase
             ON CREATE SET r_0.createdOn=timestamp()
             ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
-            """);
+            """.NormalizeWhitespace());
         else
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $movies AS muv_0
             MERGE (m_0:Movie)
             ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
@@ -620,7 +620,7 @@ public class NodeTests : TestBase
             ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
             ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
-            """);
+            """.NormalizeWhitespace());
     }
     [Theory]
     [InlineData(true)]
@@ -645,7 +645,7 @@ public class NodeTests : TestBase
         node.Create(cypherBuilder, "$movies", 0);
         var sut = cypherBuilder.ToString();
         if (enforceModifiedTimestampKey == false)
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $movies AS cuv_0
             CREATE (c_0:Movie) SET c_0.Name=cuv_0.Name, c_0.ReleaseDate=cuv_0.ReleaseDate, c_0.createdOn=timestamp()
             FOREACH (ignored IN CASE WHEN cuv_0.Director IS NOT NULL THEN [1] ELSE [] END |
@@ -656,9 +656,9 @@ public class NodeTests : TestBase
             CREATE (c_0)<-[r_0:DIRECTED]-(m_0_1_0)
             SET r_0.createdOn=timestamp()
             )
-            """);
+            """.NormalizeWhitespace());
         else
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $movies AS cuv_0
             CREATE (c_0:Movie) SET c_0.Name=cuv_0.Name, c_0.ReleaseDate=cuv_0.ReleaseDate, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
             FOREACH (ignored IN CASE WHEN cuv_0.Director IS NOT NULL THEN [1] ELSE [] END |
@@ -669,7 +669,7 @@ public class NodeTests : TestBase
             CREATE (c_0)<-[r_0:DIRECTED]-(m_0_1_0)
             SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
             )
-            """);
+            """.NormalizeWhitespace());
     }
     [Theory]
     [InlineData(false)]
@@ -697,7 +697,7 @@ public class NodeTests : TestBase
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
         if (enforceModifiedTimestampKey == false)
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS muv_0
             MERGE (m_0:Person {Id: muv_0.Id})
             ON CREATE SET m_0.createdOn=timestamp()
@@ -712,9 +712,9 @@ public class NodeTests : TestBase
             ON CREATE SET r_0.createdOn=timestamp()
             ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
-            """);
+            """.NormalizeWhitespace());
         else
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS muv_0
             MERGE (m_0:Person {Id: muv_0.Id})
             ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
@@ -729,7 +729,7 @@ public class NodeTests : TestBase
             ON CREATE SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
             ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
-            """);
+            """.NormalizeWhitespace());
     }
     [Theory]
     [InlineData(false)]
@@ -757,7 +757,7 @@ public class NodeTests : TestBase
         node.Create(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
         if (enforceModifiedTimestampKey == false)
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp()
             FOREACH (muv_0_1_0 IN cuv_0.MoviesAsActor |
@@ -768,9 +768,9 @@ public class NodeTests : TestBase
             CREATE (c_0)-[r_0:ACTED_IN]->(m_0_1_0)
             SET r_0.createdOn=timestamp()
             )
-            """);
+            """.NormalizeWhitespace());
         else
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
             FOREACH (muv_0_1_0 IN cuv_0.MoviesAsActor |
@@ -781,7 +781,7 @@ public class NodeTests : TestBase
             CREATE (c_0)-[r_0:ACTED_IN]->(m_0_1_0)
             SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
             )
-            """);
+            """.NormalizeWhitespace());
     }
     [Theory]
     [InlineData(false)]
@@ -818,7 +818,7 @@ public class NodeTests : TestBase
         node.Merge(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
         if (enforceModifiedTimestampKey == false)
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS muv_0
             MERGE (m_0:Person {Id: muv_0.Id})
             ON CREATE SET m_0.createdOn=timestamp()
@@ -843,9 +843,9 @@ public class NodeTests : TestBase
             ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             )
-            """);
+            """.NormalizeWhitespace());
         else
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS muv_0
             MERGE (m_0:Person {Id: muv_0.Id})
             ON CREATE SET m_0.createdOn=timestamp(), m_0.modifiedOn=timestamp()
@@ -870,7 +870,7 @@ public class NodeTests : TestBase
             ON MATCH SET r_0.modifiedOn=timestamp(), r_0.archivedOn=null
             )
             )
-            """);
+            """.NormalizeWhitespace());
     }
 
     [Theory]
@@ -908,7 +908,7 @@ public class NodeTests : TestBase
         node.Create(cypherBuilder, "$people", 0);
         var sut = cypherBuilder.ToString();
         if (enforceModifiedTimestampKey == false)
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp()
             FOREACH (ignored IN CASE WHEN cuv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
@@ -928,9 +928,9 @@ public class NodeTests : TestBase
             SET r_0.createdOn=timestamp()
             )
             )
-            """);
+            """.NormalizeWhitespace());
         else
-            sut.Trim().Should().Be("""
+            sut.NormalizeWhitespace().Should().Be("""
             UNWIND $people AS cuv_0
             CREATE (c_0:Person) SET c_0.Id=cuv_0.Id, c_0.FirstName=cuv_0.FirstName, c_0.createdOn=timestamp(), c_0.modifiedOn=timestamp()
             FOREACH (ignored IN CASE WHEN cuv_0.Resources IS NOT NULL THEN [1] ELSE [] END |
@@ -950,7 +950,7 @@ public class NodeTests : TestBase
             SET r_0.createdOn=timestamp(), r_0.modifiedOn=timestamp()
             )
             )
-            """);
+            """.NormalizeWhitespace());
     }
 
     [Fact]
@@ -971,10 +971,10 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
-        cypher.Should().Be("""
+        cypher.NormalizeWhitespace().Should().Be("""
         OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        """);
+        """.NormalizeWhitespace());
         variables.Should().ContainKey("person_id_0");
         var identifiers = variables["person_id_0"] as List<object>;
         identifiers.Should().HaveCount(1);
@@ -1000,10 +1000,10 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
-        cypher.Should().Be("""
+        cypher.NormalizeWhitespace().Should().Be("""
         OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        """);
+        """.NormalizeWhitespace());
         variables.Should().ContainKey("person_id_0");
         variables.Should().HaveCount(1);
         var identifiers = variables["person_id_0"] as List<object>;
@@ -1042,12 +1042,12 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
-        cypher.Should().Be("""
+        cypher.NormalizeWhitespace().Should().Be("""
         OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
         OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        """);
+        """.NormalizeWhitespace());
         variables.Should().ContainKey("person_id_0");
         variables.Should().HaveCount(1);
         var identifiers = variables["person_id_0"] as List<object>;
@@ -1106,7 +1106,7 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
-        cypher.Should().Be("""
+        cypher.NormalizeWhitespace().Should().Be("""
         OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
         OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
@@ -1115,7 +1115,7 @@ public class NodeTests : TestBase
         WITH 0 AS nothing
         OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        """);
+        """.NormalizeWhitespace());
         variables.Should().ContainKey("person_id_0");
         variables.Should().HaveCount(1);
         var identifiers = variables["person_id_0"] as List<object>;
@@ -1166,10 +1166,10 @@ public class NodeTests : TestBase
         var cypherBuilder = new StringBuilder();
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
-        cypher.Should().Be("""
+        cypher.NormalizeWhitespace().Should().Be("""
         OPTIONAL MATCH(a_0_1_0:Person WHERE a_0_1_0.Id IN $person_id_1)-[r_0_1_0:LIVES_IN WHERE r_0_1_0.archivedOn IS null]->(:Address) SET r_0_1_0.archivedOn=timestamp()
         WITH 0 AS nothing
-        """);
+        """.NormalizeWhitespace());
         variables.Should().ContainKey("person_id_1");
         variables.Should().HaveCount(1);
         var identifiers = variables["person_id_1"] as List<object>;

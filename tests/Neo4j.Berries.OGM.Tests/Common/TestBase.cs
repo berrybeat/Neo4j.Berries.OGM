@@ -10,6 +10,7 @@ public abstract class TestBase
 {
     public Neo4jOptions Neo4jOptions { get; set; }
     public ApplicationGraphContext TestGraphContext { get; }
+
     public TestBase(bool withSeed = false, Func<string, string> propertyCaseConverter = null)
     {
         var configurationBuilder = new OGMConfigurationBuilder(null)
@@ -28,6 +29,14 @@ public abstract class TestBase
         });
         if (withSeed)
             new Seed(TestGraphContext).ExecuteFullAsync().Wait();
+    }
+
+    public void ClearDatabase()
+    {
+        Neo4jSessionFactory.OpenSession(async session =>
+        {
+            await session.RunAsync("match(a) detach delete a");
+        });
     }
 
     public void OpenSession(Action<ISession> callback)

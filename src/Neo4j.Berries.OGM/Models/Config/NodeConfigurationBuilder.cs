@@ -1,4 +1,7 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
+using Neo4j.Berries.OGM.Contexts;
+using System.Linq.Expressions;
 using Neo4j.Berries.OGM.Enums;
 
 namespace Neo4j.Berries.OGM.Models.Config;
@@ -13,14 +16,15 @@ public class NodeConfigurationBuilder
     /// <exception cref="InvalidOperationException">If the property is already excluded</exception>
     public NodeConfigurationBuilder IncludeProperties(params string[] properties)
     {
-        foreach (var prop in properties)
+        ConcurrentBag<string> newExclude = new();
+        foreach (var x in NodeConfiguration.ExcludedProperties)
         {
-            if (NodeConfiguration.ExcludedProperties.Contains(prop))
+            if (!properties.Contains(x))
             {
-                throw new InvalidOperationException($"Property '{prop}' is already excluded.");
+                newExclude.Add(x);
             }
-            NodeConfiguration.IncludedProperties.Add(prop);
         }
+        NodeConfiguration.ExcludedProperties = newExclude;
         return this;
     }
     /// <summary>
@@ -32,10 +36,6 @@ public class NodeConfigurationBuilder
     {
         foreach (var prop in properties)
         {
-            if (NodeConfiguration.IncludedProperties.Contains(prop))
-            {
-                throw new InvalidOperationException($"Property '{prop}' is already included.");
-            }
             NodeConfiguration.ExcludedProperties.Add(prop);
         }
         return this;

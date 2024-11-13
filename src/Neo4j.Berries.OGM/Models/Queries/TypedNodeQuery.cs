@@ -57,6 +57,41 @@ where TNode : class
         WithRelation(expression.GetPropertyName(), eloquent);
         return this;
     }
+
+    public NodeQuery<TNode> WithOptionalRelation<TProperty>(Expression<Func<TNode, TProperty>> expression)
+    where TProperty : class
+    {
+        WithOptionalRelation(expression.GetPropertyName());
+        return this;
+    }
+    ///<summary>
+    /// Adds a mandatory relation to the query. The property must be defined as a relation.
+    ///</summary>
+    ///<param name="expression">The relation to include in the query.</param>
+    ///<param name="eloquentFunc">A function to build the eloquent query for the relation's target node. IGNORE intellicense here when searching through a collection of relations</param>
+    public NodeQuery<TNode> WithOptionalRelation<TProperty>(Expression<Func<TNode, ICollection<TProperty>>> expression, Func<Eloquent<TProperty>, Eloquent<TProperty>> eloquentFunc)
+    where TProperty : class
+    {
+        var eloquent = eloquentFunc(new Eloquent<TProperty>(Matches.Count));
+        WithOptionalRelation(expression.GetPropertyName(), eloquent);
+        return this;
+    }
+    ///<summary>
+    /// Adds a mandatory relation to the query. The property must be defined as a relation.
+    ///</summary>
+    ///<param name="expression">The relation to include in the query.</param>
+    ///<param name="eloquentFunc">A function to build the eloquent query for the relation's target node. IGNORE intellisense here when searching through a collection of relations</param>
+    public NodeQuery<TNode> WithOptionalRelation<TProperty>(Expression<Func<TNode, TProperty>> expression, Func<Eloquent<TProperty>, Eloquent<TProperty>> eloquentFunc)
+    where TProperty : class
+    {
+        Eloquent<TProperty> eloquent = null;
+        if (eloquentFunc != null)
+        {
+            eloquent = eloquentFunc(new Eloquent<TProperty>(Matches.Count));
+        }
+        WithOptionalRelation(expression.GetPropertyName(), eloquent);
+        return this;
+    }
     #endregion
 
     #region Query executions

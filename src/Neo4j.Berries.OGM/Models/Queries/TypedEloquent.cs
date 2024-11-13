@@ -40,6 +40,7 @@ where TQueryable : class
             return this;
         }
     }
+
     /// <summary>
     /// Will add a where clause to the current conjunction group. The default comparison operator is equals
     /// </summary>
@@ -49,6 +50,7 @@ where TQueryable : class
     {
         return Where(expression, ComparisonOperator.Equals, value);
     }
+
     /// <summary>
     /// Will add a where clause to the current conjunction group
     /// </summary>
@@ -111,4 +113,55 @@ where TQueryable : class
         AddWhereClause(expression.GetPropertyName(true), "NOT {0} IN {1}", values, true);
         return this;
     }
+
+
+    #region String Comparisons
+
+    /// <summary>
+    /// Will add a where clause to the current conjunction group using string comparison operator Contains
+    /// </summary>
+    /// <param name="expression">The string property to compare</param>
+    /// <param name="value">The string value to compare the property to</param>
+    public Eloquent<TQueryable> WhereContains<TProperty>(Expression<Func<TQueryable, TProperty>> expression, string value)
+    {
+        var opt = OperatorMaps.StringComparisonOperatorMap[StringComparisonOperator.Contains];
+        AddWhereClause(expression.GetPropertyName(true), opt, value);
+        return this;
+    }
+
+    /// <summary>
+    /// Will add a where clause to the current conjunction group using string comparison operator StartsWith
+    /// </summary>
+    /// <param name="expression">The string property to compare</param>
+    /// <param name="value">The string value to compare the property to</param>
+    public Eloquent<TQueryable> WhereStartsWith<TProperty>(Expression<Func<TQueryable, TProperty>> expression, string value)
+    {
+        var opt = OperatorMaps.StringComparisonOperatorMap[StringComparisonOperator.StartsWith];
+        AddWhereClause(expression.GetPropertyName(true), opt, value);
+        return this;
+    }
+
+    /// <summary>
+    /// Will add a where clause to the current conjunction group using string comparison operator EndsWith
+    /// </summary>
+    /// <param name="expression">The string property to compare</param>
+    /// <param name="value">The string value to compare the property to</param>
+    public Eloquent<TQueryable> WhereEndsWith<TProperty>(Expression<Func<TQueryable, TProperty>> expression, string value)
+    {
+        var opt = OperatorMaps.StringComparisonOperatorMap[StringComparisonOperator.EndsWith];
+        AddWhereClause(expression.GetPropertyName(true), opt, value);
+        return this;
+    }
+
+    /// <summary>
+    /// Will add a where clause to the current conjunction group using string comparison operator IsNormalized
+    /// </summary>
+    /// <param name="expression">The string property to compare</param>
+    public Eloquent<TQueryable> WhereIsNormalized<TProperty>(Expression<Func<TQueryable, TProperty>> expression)
+    {
+        var opt = OperatorMaps.StringComparisonOperatorMap[StringComparisonOperator.IsNormalized];
+        AddWhereClause(expression.GetPropertyName(true), opt, null);
+        return this;
+    }
+    #endregion
 }

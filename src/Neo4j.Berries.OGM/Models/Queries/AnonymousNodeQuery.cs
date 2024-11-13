@@ -1,4 +1,3 @@
-using System.Text;
 using Neo4j.Berries.OGM.Contexts;
 using Neo4j.Berries.OGM.Interfaces;
 using Neo4j.Berries.OGM.Models.Config;
@@ -7,6 +6,8 @@ using Neo4j.Berries.OGM.Models.Match;
 using Neo4j.Berries.OGM.Models.Sets;
 using Neo4j.Berries.OGM.Utils;
 using Neo4j.Driver;
+using System.Reflection;
+using System.Text;
 
 namespace Neo4j.Berries.OGM.Models.Queries;
 
@@ -60,6 +61,29 @@ public class NodeQuery
             relationConfig,
             eloquent,
             Matches.Count)
+        .ToCypher(CypherBuilder);
+        Matches.Add(match);
+        return this;
+    }
+
+    public NodeQuery WithOptionalRelation(string property)
+    {
+        return WithOptionalRelation(property, eloquentFunc: null);
+    }
+    public NodeQuery WithOptionalRelation(string property, Func<Eloquent, Eloquent> eloquentFunc)
+    {
+        var eloquent = eloquentFunc is null ? null : eloquentFunc(new Eloquent(Matches.Count));
+        return WithOptionalRelation(property, eloquent);
+    }
+    protected NodeQuery WithOptionalRelation(string property, Eloquent eloquent)
+    {
+        var relationConfig = NodeConfig.Relations[property];
+        var match = new MatchRelationModel(
+            Matches.First(),
+            relationConfig,
+            eloquent,
+            Matches.Count,
+            true)
         .ToCypher(CypherBuilder);
         Matches.Add(match);
         return this;
@@ -177,7 +201,12 @@ public class NodeQuery
     {
         var key = Matches.First().StartNodeAlias;
         var _cypher = CypherBuilder.BuildFirstOrDefaultQuery(Matches).ToString();
-        var response = ExecuteWithMap(record => record.Convert<TResult>(key), _cypher);
+        var matchesToMap = new List<IMatch> { Matches.First() };
+
+        matchesToMap.AddRange(Matches.OfType<MatchRelationModel>()
+            .Where(x => !NodeConfig.ExcludedProperties.Contains(x.RelationProperty)).ToList());
+
+        var response = ExecuteWithMap(MapNodeWithRelations<TResult>(matchesToMap), _cypher);
         if (!response.Any()) return null;
         return response.ElementAt(0);
     }
@@ -189,10 +218,16 @@ public class NodeQuery
     {
         var key = Matches.First().StartNodeAlias;
         var _cypher = CypherBuilder.BuildFirstOrDefaultQuery(Matches).ToString();
-        var response = await ExecuteWithMapAsync(record => record.Convert<TResult>(key), _cypher, cancellationToken);
+        var matchesToMap = new List<IMatch> { Matches.First() };
+
+        matchesToMap.AddRange(Matches.OfType<MatchRelationModel>()
+            .Where(x => !NodeConfig.ExcludedProperties.Contains(x.RelationProperty)).ToList());
+
+        var response = await ExecuteWithMapAsync(MapNodeWithRelations<TResult>(matchesToMap), _cypher, cancellationToken);
         if (!response.Any()) return null;
         return response.ElementAt(0);
     }
+
     ///<summary>
     /// Returns a list of nodes found in the query. The node type is of type the node the query is started with
     ///</summary>
@@ -201,8 +236,13 @@ public class NodeQuery
     {
         var key = Matches.First().StartNodeAlias;
         var _cypher = CypherBuilder.BuildListQuery(Matches).ToString();
-        var response = ExecuteWithMap(record => record.Convert<TResult>(key), _cypher);
-        return [.. response];
+        var matchesToMap = new List<IMatch> { Matches.First() };
+
+        matchesToMap.AddRange(Matches.OfType<MatchRelationModel>()
+            .Where(x => !NodeConfig.ExcludedProperties.Contains(x.RelationProperty)).ToList());
+
+        var response = ExecuteWithMap(MapNodeWithRelations<TResult>(matchesToMap), _cypher);
+        return response.ToList();
     }
     ///<summary>
     /// Returns a list of nodes found in the query. The node type is of type the node the query is started with
@@ -212,8 +252,13 @@ public class NodeQuery
     {
         var key = Matches.First().StartNodeAlias;
         var _cypher = CypherBuilder.BuildListQuery(Matches).ToString();
-        var response = await ExecuteWithMapAsync(record => record.Convert<TResult>(key), _cypher, cancellationToken);
-        return [.. response];
+        var matchesToMap = new List<IMatch> { Matches.First() };
+
+        matchesToMap.AddRange(Matches.OfType<MatchRelationModel>()
+            .Where(x => !NodeConfig.ExcludedProperties.Contains(x.RelationProperty)).ToList());
+
+        var response = await ExecuteWithMapAsync(MapNodeWithRelations<TResult>(matchesToMap), _cypher, cancellationToken);
+        return response.ToList();
     }
     private async Task<IEnumerable<TResult>> ExecuteWithMapAsync<TResult>(Func<IRecord, TResult> mapper, string cypher, CancellationToken cancellationToken = default)
     {
@@ -222,6 +267,48 @@ public class NodeQuery
     private IEnumerable<TResult> ExecuteWithMap<TResult>(Func<IRecord, TResult> mapper, string cypher, CancellationToken cancellationToken = default)
     {
         return InternalDatabaseContext.Run(cypher, QueryParameters, mapper);
+    }
+
+    /// <summary>
+    /// Mapping function for populating node object with relation properties
+    /// </summary>
+    /// <typeparam name="TResult">Type of node</typeparam>
+    /// <param name="matches">Match models to populate</param>
+    /// <returns></returns>
+    private Func<IRecord, TResult> MapNodeWithRelations<TResult>(List<IMatch> matches) where TResult : class
+    {
+        return record =>
+        {
+            var node = record.Convert<TResult>(matches.First().StartNodeAlias);
+            foreach (var relation in matches.Skip(1).OfType<MatchRelationModel>())
+            {
+                if ((record.ContainsKey(relation.EndNodeAlias) || record.ContainsKey(QueryUtils.CollectionAlias(relation.EndNodeAlias))) && !string.IsNullOrEmpty(relation.RelationProperty))
+                {
+                    var propertyInfo = node.GetType().GetProperty(relation.RelationProperty);
+                    if (propertyInfo != null && propertyInfo.CanWrite)
+                    {
+                        if(ObjectUtils.IsCollection(propertyInfo.PropertyType))
+                        {
+                            var genericType = propertyInfo.PropertyType.GetGenericArguments()[0];
+                            MethodInfo convertMethod = typeof(Converters)
+                            .GetMethod("ConvertCollection")
+                            .MakeGenericMethod(genericType);
+                            var result = convertMethod.Invoke(null, [record, QueryUtils.CollectionAlias(relation.EndNodeAlias)]);
+                            propertyInfo.SetValue(node, result);
+                        }
+                        else
+                        {
+                            MethodInfo convertMethod = typeof(Converters)
+                            .GetMethod("Convert")
+                            .MakeGenericMethod(propertyInfo.PropertyType);
+                            var result = convertMethod.Invoke(null, [record, relation.EndNodeAlias]);
+                            propertyInfo.SetValue(node, result);
+                        }                        
+                    }
+                }
+            }
+            return node;
+        };
     }
     #endregion
 

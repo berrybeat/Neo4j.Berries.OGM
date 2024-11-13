@@ -21,6 +21,10 @@ public static class ObjectUtils
     {
         return input.GetType().IsAssignableTo(typeof(IDictionary));
     }
+    internal static bool IsDictionary(this Type inputType)
+    {
+        return inputType.IsAssignableTo(typeof(IDictionary));
+    }
     private static bool IsListOfInterfaces(this List<object> inputType)
     {
         var interfaces = inputType
@@ -41,6 +45,13 @@ public static class ObjectUtils
     internal static bool IsCollection(this object input)
     {
         return input.GetType().IsAssignableTo(typeof(IEnumerable)) && !input.IsDictionary();
+    }
+    /// <summary>
+    /// Checks if the type is a collection, but being a dictionary collection is excluded.
+    /// </summary>
+    internal static bool IsCollection(this Type inputType)
+    {
+        return inputType.IsAssignableTo(typeof(IEnumerable)) && !inputType.IsDictionary();
     }
     internal static Dictionary<string, object> NormalizeValuesForNeo4j(this Dictionary<string, object> input, bool recursion = false)
     {
@@ -130,15 +141,8 @@ public static class ObjectUtils
                 obj[prop.Name] = value.ToDictionary(config, propertyCaseConverter, relation?.EndNodeMergeProperties, iterations + 1);
                 continue;
             }
-            if (
-                (mergeProperties.Any() && mergeProperties.Contains(propName)) ||
-                (!mergeProperties.Any() &&
-                    ((!nodeConfig.ExcludedProperties.Contains(propName) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-                    (nodeConfig.IncludedProperties.Contains(propName) && !nodeConfig.IncludedProperties.IsEmpty)))
-                )
-                obj[propName] = value.ToNeo4jValue();
-            else if (!mergeProperties.Any() && nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)
-            {
+            if ((mergeProperties.Any() && mergeProperties.Contains(propName)) || (!mergeProperties.Any() && !nodeConfig.ExcludedProperties.Contains(propName)))
+            { 
                 if (value is DateTime)
                 {
                     var parsedValue = DateTime.Parse(value.ToString());

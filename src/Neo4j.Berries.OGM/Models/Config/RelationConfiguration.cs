@@ -29,6 +29,15 @@ where TEnd : class
     /// </summary>
     public bool KeepHistory { get; set; } = false;
 
+    /// <summary>
+    /// The name of the relation property on the start node
+    /// </summary>
+    public string Property { get; internal set; }
+    /// <summary>
+    /// Indicates whether the relation property is a collection
+    /// </summary>
+    public bool IsCollection { get; internal set; } = false;
+
     public RelationConfiguration(string label, RelationDirection direction)
     {
         Label = label;
@@ -51,8 +60,6 @@ where TEnd : class
         EndNodeLabels = implementations.Select(x => x.Name).ToArray();
     }
 
-
-
     public MergeConfiguration<TEnd> OnMerge()
     {
         return EndNodeMergeConfig;
@@ -68,6 +75,10 @@ public class RelationConfiguration(string[] endNodeLabels, string label, Relatio
     /// For the anonymous relations, this option is not available.
     /// </summary>
     public IEnumerable<string> EndNodeMergeProperties => [];
+
+    public string Property { get; internal set; }
+    public bool IsCollection { get; internal set; } = false;
+
     /// <summary>
     /// If true, the history of the relation will be kept. It will set all the non archived relations to archived.
     /// </summary>

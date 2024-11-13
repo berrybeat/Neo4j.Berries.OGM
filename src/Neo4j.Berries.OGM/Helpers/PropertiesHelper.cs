@@ -22,20 +22,11 @@ internal class PropertiesHelper(object source)
         }
 
         if (relationConfig is null)
-            return properties.Where(p =>
-                (!nodeConfig.ExcludedProperties.Contains(p.Key) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-                (nodeConfig.IncludedProperties.Contains(p.Key) && !nodeConfig.IncludedProperties.IsEmpty) ||
-                (nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty)
-            )
-            .ToDictionary(p => p.Key, p => p.Value);
+            return properties.Where(p => !nodeConfig.ExcludedProperties.Contains(p.Key)).ToDictionary(p => p.Key, p => p.Value);
         else
             return properties.Where(p =>
                 (relationConfig.EndNodeMergeProperties.Any() && relationConfig.EndNodeMergeProperties.Contains(p.Key)) ||
-                (!relationConfig.EndNodeMergeProperties.Any() &&
-                    ((!nodeConfig.ExcludedProperties.Contains(p.Key) && !nodeConfig.ExcludedProperties.IsEmpty) ||
-                    (nodeConfig.IncludedProperties.Contains(p.Key) && !nodeConfig.IncludedProperties.IsEmpty) ||
-                    (nodeConfig.ExcludedProperties.IsEmpty && nodeConfig.IncludedProperties.IsEmpty))
-                )
+                (!relationConfig.EndNodeMergeProperties.Any() && !nodeConfig.ExcludedProperties.Contains(p.Key))
             ).Where(p => p.Value != null)
             .ToDictionary(p => p.Key, p => p.Value);
     }

@@ -142,7 +142,7 @@ public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
             var result = await AsyncSession
                 .RunAsync(cypher, parameters);
             return (await result.ToListAsync(cancellationToken: cancellationToken))
-                    .Select(record => map(record));
+                .Select(record => map(record));
         }
     }
 }
