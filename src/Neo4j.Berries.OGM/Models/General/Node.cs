@@ -150,7 +150,7 @@ internal class Node(string label, int depth = 0)
             var nodeAlias = ComputeAlias("a", nodeSetIndex, 0);
             foreach (var endNode in relationConfig.EndNodeLabels)
             {
-                cypherBuilder.Append($"OPTIONAL MATCH({nodeAlias}:{Label} WHERE ");
+                cypherBuilder.Append($"CALL {{ OPTIONAL MATCH({nodeAlias}:{Label} WHERE ");
                 cypherBuilder.Append(
                     string.Join(
                         " AND ",
@@ -160,7 +160,7 @@ internal class Node(string label, int depth = 0)
                 cypherBuilder.AppendLine(
                     $"){relationConfig.Format($"{relationAlias}.{timestampConfig.ArchivedTimestampKey} IS null", relationAlias)}(:{endNode}) SET {relationAlias}.{timestampConfig.ArchivedTimestampKey}=timestamp()"
                 );
-                cypherBuilder.AppendLine("WITH 0 AS nothing");
+                cypherBuilder.AppendLine("}");
             }
         }
         var allNodes = SingleRelations.Values.Concat(MultipleRelations.Values).Concat(GroupRelations.Values.SelectMany(x => x.Values));
