@@ -248,6 +248,55 @@ public class GraphContextTests : TestBase
             .Should()
             .Be(0);
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    //The order is the order of the functions inside DatabaseContext. All of them will be tested here
+    public void Should_Set_Transaction_To_Null_After_Used(int order)
+    {
+        var movie1 = FakeMovies.GetMovie(1, 1).First();
+        if (order == 1)
+        {
+            TestGraphContext.Database.BeginTransaction(async () =>
+            {
+                TestGraphContext.Movies.Add(movie1);
+                await TestGraphContext.SaveChangesAsync();
+            });
+        }
+        else if (order == 2)
+        {
+            TestGraphContext.Database.BeginTransaction(async () =>
+            {
+                TestGraphContext.Movies.Add(movie1);
+                await TestGraphContext.SaveChangesAsync();
+                return "test";
+            });
+        }
+        else if (order == 3)
+        {
+            TestGraphContext.Database.BeginTransaction((tx) =>
+            {
+                TestGraphContext.Movies.Add(movie1);
+                TestGraphContext.SaveChanges();
+                tx.Commit();
+            });
+        }
+        else if (order == 4)
+        {
+            TestGraphContext.Database.BeginTransaction(async (tx) =>
+            {
+                TestGraphContext.Movies.Add(movie1);
+                await TestGraphContext.SaveChangesAsync();
+                tx.Commit();
+                return "Test";
+            });
+        }
+        TestGraphContext.Database.Transaction.Should().BeNull();
+    }
+
     [Fact]
     public async void Should_Create_Node_With_Children_Based_On_Merge_Config_With_More_Than_One_Props()
     {
@@ -429,6 +478,6 @@ public class GraphContextTests : TestBase
             .Run("MATCH(director:Person)-[r:DIRECTED]->(movie:Movie) WHERE movie.Id=$id return r", new { id = id.ToString() })
             .ToList();
         var movieRecord = records.Select(x => x.Values.Select(y => y.Value as IRelationship)).SelectMany(x => x).ToList().First();
-        movieRecord.Properties.Should().ContainKey("createdOn");   
+        movieRecord.Properties.Should().ContainKey("createdOn");
     }
 }

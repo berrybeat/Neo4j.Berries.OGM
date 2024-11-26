@@ -70,6 +70,7 @@ public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
         var transaction = Session.BeginTransaction(transactionConfigBuilder);
         Transaction = transaction;
         action(transaction);
+        Transaction = null;
     }
 
     /// <summary>
@@ -83,6 +84,7 @@ public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
         var transaction = Session.BeginTransaction(transactionConfigBuilder);
         Transaction = transaction;
         var result = action(transaction).Result;
+        Transaction = null;
         return result;
     }
 
