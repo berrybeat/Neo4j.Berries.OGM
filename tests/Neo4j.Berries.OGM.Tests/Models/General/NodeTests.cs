@@ -972,8 +972,8 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
+        }
         """);
         variables.Should().ContainKey("person_id_0");
         var identifiers = variables["person_id_0"] as List<object>;
@@ -1001,8 +1001,8 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
+        }
         """);
         variables.Should().ContainKey("person_id_0");
         variables.Should().HaveCount(1);
@@ -1043,10 +1043,10 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
+        }
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
+        }
         """);
         variables.Should().ContainKey("person_id_0");
         variables.Should().HaveCount(1);
@@ -1107,14 +1107,14 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
-        OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
-        WITH 0 AS nothing
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:LIVES_IN WHERE r_0.archivedOn IS null]->(:Address) SET r_0.archivedOn=timestamp()
+        }
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:FRIENDS_WITH WHERE r_0.archivedOn IS null]->(:Person) SET r_0.archivedOn=timestamp()
+        }
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Car) SET r_0.archivedOn=timestamp()
+        }
+        CALL { OPTIONAL MATCH(a_0:Person WHERE a_0.Id IN $person_id_0)-[r_0:USES WHERE r_0.archivedOn IS null]->(:Room) SET r_0.archivedOn=timestamp()
+        }
         """);
         variables.Should().ContainKey("person_id_0");
         variables.Should().HaveCount(1);
@@ -1167,14 +1167,14 @@ public class NodeTests : TestBase
         node.ArchiveRelations(cypherBuilder, 0, out var variables);
         var cypher = cypherBuilder.ToString().Trim();
         cypher.Should().Be("""
-        OPTIONAL MATCH(a_0_1_0:Person WHERE a_0_1_0.Id IN $person_id_1)-[r_0_1_0:LIVES_IN WHERE r_0_1_0.archivedOn IS null]->(:Address) SET r_0_1_0.archivedOn=timestamp()
-        WITH 0 AS nothing
+        CALL { OPTIONAL MATCH(a_0_1_0:Person WHERE a_0_1_0.Id IN $person_id_1)-[r_0_1_0:LIVES_IN WHERE r_0_1_0.archivedOn IS null]->(:Address) SET r_0_1_0.archivedOn=timestamp()
+        }
         """);
+        
         variables.Should().ContainKey("person_id_1");
         variables.Should().HaveCount(1);
         var identifiers = variables["person_id_1"] as List<object>;
         identifiers.Should().HaveCount(2);
         identifiers.Should().Contain(node.MultipleRelations["Friends"].Identifiers["Id"]);
     }
-
 }

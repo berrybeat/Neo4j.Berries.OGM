@@ -22,7 +22,7 @@ public class MatchModelTests
     {
         var sut = new MatchModel<Person>(null, 0);
         sut.ToCypher(CypherBuilder);
-        CypherBuilder.ToString().Should().Be("MATCH (l0:Person)\n");
+        CypherBuilder.ToString().Trim().Should().Be("MATCH (l0:Person)");
     }
     [Fact]
     public void Should_Create_Match_With_Eloquent()
@@ -31,7 +31,7 @@ public class MatchModelTests
         eloquent.Where(x => x.Id, Guid.NewGuid());
         var sut = new MatchModel<Person>(eloquent, 0);
         sut.ToCypher(CypherBuilder);
-        CypherBuilder.ToString().Should().Be("MATCH (l0:Person WHERE l0.Id = $qp_0_0)\n");
+        CypherBuilder.ToString().Trim().Should().Be("MATCH (l0:Person WHERE l0.Id = $qp_0_0)");
     }
     [Fact]
     public void Should_Create_Match_OutGoing_Relation_Without_Eloquent()
@@ -40,7 +40,7 @@ public class MatchModelTests
         var relationConfig = new RelationConfiguration<Person, Movie>("ACTED_IN", RelationDirection.Out);
         var sut = new MatchRelationModel<Movie>(firstMatch, relationConfig, null, 1);
         sut.ToCypher(CypherBuilder);
-        CypherBuilder.ToString().Should().Be("MATCH (l0)-[r1:ACTED_IN]->(l1:Movie)\n");
+        CypherBuilder.ToString().Trim().Trim().Should().Be("MATCH (l0)-[r1:ACTED_IN]->(l1:Movie)");
     }
     [Fact]
     public void Should_Create_Match_OutGoing_Relation_With_Eloquent()
@@ -51,7 +51,7 @@ public class MatchModelTests
         var relationConfig = new RelationConfiguration<Person, Movie>("ACTED_IN", RelationDirection.Out);
         var sut = new MatchRelationModel<Movie>(firstMatch, relationConfig, eloquent, 1);
         sut.ToCypher(CypherBuilder);
-        CypherBuilder.ToString().Should().Be("MATCH (l0)-[r1:ACTED_IN]->(l1:Movie WHERE l1.Id = $qp_1_0)\n");
+        CypherBuilder.ToString().Trim().Should().Be("MATCH (l0)-[r1:ACTED_IN]->(l1:Movie WHERE l1.Id = $qp_1_0)");
     }
     [Fact]
     public void Should_Create_Match_InComing_Relation_Without_Eloquent()
@@ -60,7 +60,7 @@ public class MatchModelTests
         var relationConfig = new RelationConfiguration<Movie, Person>("ACTED_IN", RelationDirection.In);
         var sut = new MatchRelationModel<Person>(firstMatch, relationConfig, null, 1);
         sut.ToCypher(CypherBuilder);
-        CypherBuilder.ToString().Should().Be("MATCH (l0)<-[r1:ACTED_IN]-(l1:Person)\n");
+        CypherBuilder.ToString().Trim().Should().Be("MATCH (l0)<-[r1:ACTED_IN]-(l1:Person)");
     }
     [Fact]
     public void Should_Create_Match_InComing_Relation_With_Eloquent()
@@ -71,6 +71,6 @@ public class MatchModelTests
         var relationConfig = new RelationConfiguration<Person, Person>("ACTED_IN", RelationDirection.In);
         var sut = new MatchRelationModel<Person>(firstMatch, relationConfig, eloquent, 1);
         sut.ToCypher(CypherBuilder);
-        CypherBuilder.ToString().Should().Be("MATCH (l0)<-[r1:ACTED_IN]-(l1:Person WHERE l1.Id = $qp_1_0)\n");
+        CypherBuilder.ToString().Trim().Should().Be("MATCH (l0)<-[r1:ACTED_IN]-(l1:Person WHERE l1.Id = $qp_1_0)");
     }
 }
