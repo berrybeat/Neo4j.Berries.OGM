@@ -2,7 +2,7 @@ using Neo4j.Driver;
 
 namespace Neo4j.Berries.OGM.Contexts;
 
-public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
+public sealed class DatabaseContext(Neo4jOptions neo4jOptions) : IDisposable, IAsyncDisposable
 {
     public IDriver Driver { get; private set; } = neo4jOptions.Driver;
     /// <summary>
@@ -86,6 +86,20 @@ public sealed class DatabaseContext(Neo4jOptions neo4jOptions)
         var result = action(transaction).Result;
         Transaction = null;
         return result;
+    }
+
+    public void Dispose()
+    {
+        Driver.Dispose();
+        Session.Dispose();
+        AsyncSession.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Driver.DisposeAsync();
+        await AsyncSession.DisposeAsync();
+        Session.Dispose();
     }
 
     internal IEnumerable<IRecord> Run(string cypher, object parameters)
