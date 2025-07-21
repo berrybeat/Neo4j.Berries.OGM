@@ -6,7 +6,7 @@ using Neo4j.Berries.OGM.Models.Sets;
 
 namespace Neo4j.Berries.OGM.Contexts;
 
-public abstract class GraphContext
+public abstract class GraphContext : IDisposable
 {
     public DatabaseContext Database { get; private set; }
     internal StringBuilder CypherBuilder { get; } = new StringBuilder();
@@ -196,5 +196,11 @@ public abstract class GraphContext
         {
             return value.ToString();
         }
+    }
+
+    public void Dispose()
+    {
+        Database.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
