@@ -129,8 +129,12 @@ public abstract class GraphContext
             }
 
             var _parameters = parameters.ToList();
-            var result2 = BuildFinalQuery(CypherBuilder.ToString(), _parameters.ToDictionary(pair => pair.Key, pair => pair.Value));
-            return result2;
+            var result = BuildFinalQuery(CypherBuilder.ToString(), _parameters.ToDictionary(pair => pair.Key, pair => pair.Value));
+            
+             ResetCreateCommands();
+             CypherBuilder.Clear();
+
+            return result;
         }
 
         catch (Exception ex)
